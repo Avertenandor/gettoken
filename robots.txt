@@ -1,5 +1,4 @@
 User-agent: *
 Allow: /
 Disallow: /private/
-Host: gettoken.nl
 Sitemap: https://gettoken.nl/sitemap.xml
