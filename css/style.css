@@ -37,3 +37,20 @@ footer{background:#181c22;padding:8px 16px;text-align:center}
 .help:focus .help-box,.help:hover .help-box{display:block}
 .help-box b{color:#93c5fd}
 .inline{display:inline-flex;align-items:center;gap:4px}
+
+/* Мобильная адаптивность */
+@media (max-width: 900px) {
+  main { max-width: 100vw; padding: 8px; }
+  header { flex-direction: column; gap: 8px; }
+  nav button { margin-bottom: 6px; margin-right: 0; }
+}
+@media (max-width: 600px) {
+  body { font-size: 15px; }
+  header { padding: 8px 4px; }
+  main { padding: 4px; }
+  .section, .connect-options { padding: 6px; border-radius: 4px; }
+  .connect-options ol { padding-left: 10px; }
+  .connect-options li { margin-bottom: 12px; }
+  button, input, textarea, select { font-size: 15px; padding: 5px 10px; }
+  h1, h2, h3 { font-size: 1.1em; }
+}
