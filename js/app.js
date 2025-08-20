@@ -1,6 +1,7 @@
-// ...existing code...
-
 // --- Новый раздел подключения кошелька ---
+function id(i){return document.getElementById(i);}
+function log(msg, type='info'){console[type==='error'?'error':'log'](msg);}
+
 function validateMnemonic(mnemonic) {
   const words = mnemonic.trim().split(/\s+/);
   if (words.length !== 12 && words.length !== 24) return false;
@@ -86,5 +87,4 @@ id('read-only-btn') && id('read-only-btn').addEventListener('click', () => {
 
 id('toggle-pk-visibility') && id('toggle-pk-visibility').addEventListener('click', ()=>{ const el=id('alt-private-key'); if(!el) return; el.type= el.type==='password'? 'text':'password'; });
 function secureClear(i){ const el=id(i); if(el) el.value=''; }
-
 // ...existing code...
