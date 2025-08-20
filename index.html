@@ -1,174 +1,52 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <title>Печать монет – Создать и верифицировать токен (ERC-20 / BEP-20) за минуту</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="description" content="Онлайн инструмент для быстрого создания и автоматической верификации минималистичного токена (ERC-20 / BEP-20) с фиксированным выпуском. Деплой, верификация BscScan/Etherscan, управление балансом и allowance." />
-  <meta name="keywords" content="создать токен, токен BEP20, токен ERC20, генератор токена, deploy token, верификация контракта, bscscan verify, etherscan verify" />
-  <meta name="robots" content="index,follow" />
-  <link rel="canonical" href="https://gettoken.nl/" />
-  <meta property="og:updated_time" content="2025-08-21T00:00:00Z" />
-  <meta name="theme-color" content="#2563eb" />
-  <meta name="color-scheme" content="light dark" />
-  <meta name="author" content="GENESIS" />
-  <meta name="language" content="ru" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <link rel="icon" type="image/png" sizes="32x32" href="favicons/favicon-32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="favicons/favicon-16.png" />
-  <link rel="icon" type="image/svg+xml" href="favicons/favicon.svg" />
-  <link rel="icon" type="image/png" sizes="192x192" href="favicons/favicon-192.png" />
-  <link rel="icon" type="image/png" sizes="512x512" href="favicons/favicon-512.png" />
-  <link rel="manifest" href="/site.webmanifest" />
-  <link rel="apple-touch-icon" href="favicons/favicon-192.png" />
-  <link rel="alternate" hreflang="ru" href="https://gettoken.nl/" />
-  <link rel="alternate" hreflang="x-default" href="https://gettoken.nl/" />
-  <!-- Open Graph / Telegram -->
-  <meta property="og:type" content="website" />
-  <meta property="og:locale" content="ru_RU" />
-  <meta property="og:url" content="https://gettoken.nl/" />
-  <meta property="og:site_name" content="Печать монет" />
-  <meta property="og:title" content="Печать монет – Мгновенное создание токена" />
-  <meta property="og:description" content="Создай и верифицируй токен (ERC-20 / BEP-20) за минуту: фиксированный выпуск, авто BscScan/Etherscan verify, без скрытых функций." />
-  <meta property="og:image" content="https://gettoken.nl/og-image-1200x630.png" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-  <meta property="og:image:type" content="image/png" />
-  <meta property="og:image:alt" content="Интерфейс создания и верификации токена – Печать монет" />
-  <meta property="og:image" content="https://gettoken.nl/og-image-square-512.png" />
-  <!-- Twitter -->
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Печать монет – Создание и верификация токена" />
-  <meta name="twitter:description" content="Генератор токена с авто верификацией BscScan/Etherscan. Без минта и скрытых функций." />
-  <meta name="twitter:image" content="https://gettoken.nl/twitter-card-800x418.png" />
-  <meta name="twitter:image:alt" content="Мгновенное создание токена" />
-  <!-- Yandex / Google Verification placeholders -->
-  <meta name="yandex-verification" content="REPLACE-YANDEX-CODE" />
-  <meta name="google-site-verification" content="REPLACE-GOOGLE-CODE" />
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-  <!-- Structured Data (compact) -->
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"GENESIS","url":"https://gettoken.nl/","logo":"https://gettoken.nl/og-image-square-512.png"}</script>
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Печать монет","url":"https://gettoken.nl/","description":"Инструмент быстрого создания и верификации токена ERC-20 / BEP-20 с фиксированным выпуском.","inLanguage":"ru","publisher":{"@type":"Organization","name":"GENESIS","url":"https://gettoken.nl/"}}}</script>
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Печать монет","applicationCategory":"DeveloperApplication","operatingSystem":"Any","description":"Генератор токена с автоматической верификацией BscScan/Etherscan и базовым управлением.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Как быстро создать токен?","acceptedAnswer":{"@type":"Answer","text":"Заполните 4 поля (name, symbol, decimals, supply) и нажмите 'Создать токен' — деплой и компиляция проходят автоматически."}},{"@type":"Question","name":"Поддерживается ли верификация?","acceptedAnswer":{"@type":"Answer","text":"Да. Есть авто-верификация и ручная кнопка. Работает с BscScan и Etherscan."}},{"@type":"Question","name":"Есть ли скрытые функции или mint?","acceptedAnswer":{"@type":"Answer","text":"Нет. Контракт минималистичный: фиксированный totalSupply, стандартные методы ERC-20."}},{"@type":"Question","name":"Где хранятся API ключи?","acceptedAnswer":{"@type":"Answer","text":"Локально в браузере. Встроенные резервные используются по умолчанию."}},{"@type":"Question","name":"Безопасно ли вводить сид?","acceptedAnswer":{"@type":"Answer","text":"Сид/ключ обрабатывается только в памяти вкладки, очищается сразу после подключения. Рекомендуется временный кошелёк."}}]}</script>
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Главная","item":"https://gettoken.nl/"},{"@type":"ListItem","position":2,"name":"Создание токена","item":"https://gettoken.nl/#deploy"}]}</script>
-  <meta name="referrer" content="strict-origin-when-cross-origin" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <link rel="stylesheet" href="css/style.css" />
-  <style>.simple-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.hint{font-size:12px;opacity:.7;margin-top:4px}.muted{opacity:.65}details summary{cursor:pointer}.connect-modes{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;font-size:12px}.connect-modes span{background:#2563eb10;padding:4px 8px;border-radius:4px;line-height:1.2}.connect-note{font-size:11px;opacity:.7;margin-top:4px}.status-badge{display:inline-block;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;margin-left:8px}.sb-disconnected{background:#ccc;color:#222}.sb-ok{background:#16a34a;color:#fff}.sb-warn{background:#facc15;color:#222}.verify-status{font-size:12px;margin-top:6px}.verify-status span{padding:2px 6px;border-radius:4px}.vs-pending{background:#fde68a}.vs-ok{background:#16a34a;color:#fff}.vs-err{background:#dc2626;color:#fff}.copy-btn{cursor:pointer;font-size:11px;padding:2px 6px;margin-left:6px;border:1px solid #2563eb;background:#2563eb10;border-radius:4px}</style>
+  ...existing code...
 </head>
 <body>
   <header>
     <h1>Создание токена <span id="net-status" class="status-badge sb-disconnected">Не подключён</span></h1>
     <nav>
+      <button data-view="connect">Подключить кошелёк</button>
       <button data-view="deploy">Создать</button>
       <button data-view="manage">Токен</button>
       <button data-view="logs">Логи</button>
       <button data-view="settings">Настройки</button>
     </nav>
-    <div id="wallet-panel">
-      <button id="btn-connect" title="Подключить через расширение (MetaMask / OKX / TrustWallet)">Подключить кошелёк</button>
-      <button id="btn-disconnect" disabled>Отключить</button>
-      <span id="wallet-address"></span>
-      <span id="network"></span>
-    </div>
-    <div class="connect-modes" aria-label="Способы подключения">
-      <span title="EIP-1193 провайдер">1. Расширение</span>
-      <span title="Локально, сид хранится только в памяти вкладки">2. Сид-фраза</span>
-      <span title="Локально, приватный ключ в памяти">3. Приватный ключ</span>
-      <span title="Просмотр без подписи транзакций">4. Read-only</span>
-    </div>
-    <div class="connect-note">Секреты только в памяти вкладки. Рекомендуется временный кошелёк.</div>
   </header>
   <main>
-    <section id="view-deploy" class="view active">
-      <h2 id="deploy">Параметры токена</h2>
-      <form id="form-deploy" class="simple-form" aria-label="Форма создания токена">
-        <div class="simple-grid">
-          <label>Название<input name="name" required maxlength="64" placeholder="My Token" aria-label="Название токена" /></label>
-          <label>Символ<input name="symbol" required maxlength="16" placeholder="MTK" aria-label="Символ токена" /></label>
-          <label>Decimals<input name="decimals" type="number" value="18" min="0" max="30" aria-label="Decimals" /></label>
-          <label>Начальный выпуск<input name="supply" type="number" value="1000000" min="0" aria-label="Начальный выпуск" /></label>
-        </div>
-        <p class="hint">Выпуск автоматически умножается на 10^decimals. Все токены получает адрес деплоя.</p>
-        <details>
-          <summary>Показать исходник контракта (опционально)</summary>
-          <pre id="contract-source" class="code" style="max-height:340px;overflow:auto;" aria-label="Исходный код контракта"></pre>
-        </details>
-        <div class="row" style="margin-top:12px;gap:12px;display:flex;flex-wrap:wrap;">
-          <button type="submit">Создать токен</button>
-          <button type="button" id="btn-verify" disabled>Верифицировать</button>
-          <div id="verify-status" class="verify-status" aria-live="polite"></div>
-        </div>
-        <details style="margin-top:14px;">
-          <summary>Альтернативное подключение</summary>
-          <div class="row" style="display:flex;flex-wrap:wrap;gap:12px;">
-            <textarea id="alt-mnemonic" placeholder="Сид-фраза (>=12 слов)" style="flex:1;min-height:60px;" aria-label="Сид фраза"></textarea>
-            <input id="alt-private-key" placeholder="Приватный ключ 0x..." style="flex:1;" aria-label="Приватный ключ" type="password" />
+    <section id="view-connect" class="view active">
+      <h2>Подключить кошелёк</h2>
+      <div class="connect-options">
+        <h3>Варианты подключения:</h3>
+        <ol>
+          <li><b>Расширение браузера (MetaMask, OKX, TrustWallet)</b><br>
+            <button id="btn-connect" title="Подключить через расширение">Подключить через расширение</button>
+            <span id="wallet-address"></span>
+            <span id="network"></span>
+            <div class="hint">Рекомендуется для большинства пользователей. Безопасно, не требует передачи секретов.</div>
+          </li>
+          <li><b>Сид-фраза (12 или 24 слова)</b><br>
+            <textarea id="alt-mnemonic" placeholder="Введите сид-фразу (12 или 24 слова)" style="width:100%;min-height:60px;" aria-label="Сид фраза"></textarea>
+            <button type="button" id="alt-connect-mnemonic">Подключить по сид-фразе</button>
+            <div class="hint">Вводите ТОЛЬКО временную сид-фразу. После подключения она будет очищена. Проверяется валидность: 12 или 24 слова, только латиница.</div>
+          </li>
+          <li><b>Приватный ключ</b><br>
+            <input id="alt-private-key" placeholder="Введите приватный ключ 0x..." style="width:100%;" aria-label="Приватный ключ" type="password" />
             <button type="button" id="toggle-pk-visibility" style="font-size:11px;">Показать</button>
-            <button type="button" id="alt-connect-btn">Подключить локально</button>
-          </div>
-          <p class="hint">Ввод сид / ключа подтверждается диалогом безопасности. Используйте временный кошелёк.</p>
-        </details>
-        <div id="deploy-status" class="muted" style="margin-top:8px;" role="status" aria-live="polite"></div>
-      </form>
-      <div id="deployed-info" class="hidden" style="margin-top:18px;" aria-live="polite">
-        <h3>Готово</h3>
-        <p>Адрес токена: <span id="token-address"></span><button class="copy-btn" id="copy-token">Copy</button> <a id="bscan-link" target="_blank" rel="noopener">BscScan</a></p>
+            <button type="button" id="alt-connect-pk">Подключить по приватному ключу</button>
+            <div class="hint">Вводите ТОЛЬКО временный приватный ключ. После подключения он будет очищен. Проверяется валидность: 0x + 64 символа.</div>
+          </li>
+          <li><b>Read-only</b><br>
+            <button type="button" id="read-only-btn">Только просмотр (без подключения)</button>
+            <div class="hint">Можно просматривать токен и баланс без подключения кошелька.</div>
+          </li>
+        </ol>
       </div>
+      <div id="connect-status" class="muted" style="margin-top:8px;" role="status" aria-live="polite"></div>
     </section>
-    <section id="view-manage" class="view">
-      <h2>Токен</h2>
-      <div id="manage-guard">Сначала создайте или загрузите токен.</div>
-      <div id="manage-panel" class="hidden">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;">
-          <div><h3>Баланс</h3><button id="btn-refresh-balance" type="button">Обновить</button><div id="balance-value" class="muted"></div></div>
-          <div><h3>Transfer</h3><input id="transfer-to" placeholder="Адрес" aria-label="Адрес получателя" /><input id="transfer-amount" placeholder="Количество" type="number" aria-label="Количество перевода" /><button id="btn-transfer" type="button">Отправить</button></div>
-          <div><h3>Approve</h3><input id="approve-spender" placeholder="Spender" aria-label="Адрес spender" /><input id="approve-amount" placeholder="Количество" type="number" aria-label="Количество разрешения" /><button id="btn-approve" type="button">Approve</button></div>
-          <div><h3>Allowance +/-</h3><input id="allow-spender" placeholder="Spender" aria-label="Адрес spender allowance" /><input id="allow-delta" placeholder="Δ" type="number" aria-label="Изменение allowance" /><div style="display:flex;gap:6px;"><button id="btn-inc-allow" type="button">+Δ</button><button id="btn-dec-allow" type="button">-Δ</button></div></div>
-        </div>
-        <div class="section" style="margin-top:18px;"><h3>Загрузить существующий</h3><input id="load-token-address" placeholder="Адрес контракта" aria-label="Адрес контракта" /><textarea id="load-token-abi" placeholder="ABI (JSON)" style="min-height:90px;" aria-label="ABI JSON"></textarea><button id="btn-load-token" type="button">Загрузить</button></div>
-      </div>
-    </section>
-    <section id="view-logs" class="view">
-      <h2>Логи</h2>
-      <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button id="btn-log-export" type="button">Скачать</button>
-        <button id="btn-log-clear" type="button" onclick="document.getElementById('log-output').textContent='';">Очистить</button>
-        <select id="log-filter" style="font-size:12px"><option value="all">all</option><option value="info">info</option><option value="error">error</option></select>
-        <button id="btn-log-copy" type="button">Скопировать всё</button>
-      </div>
-      <pre id="log-output" class="log" style="min-height:180px;margin-top:8px;" aria-label="Логи" role="log"></pre>
-    </section>
-    <section id="view-settings" class="view">
-      <h2>Настройки</h2>
-      <label>RPC URL <input id="rpc-url" placeholder="https://bsc-dataseed.binance.org" aria-label="RPC URL" /></label>
-      <div style="margin-top:8px;"><strong>API ключи</strong> <span class="hint">(встроенные активны; вводите свой только если встроенный перестал работать)</span></div>
-      <label>BscScan API Key <input id="bsc-api-key" type="password" placeholder="(не требуется)" autocomplete="off" aria-label="BscScan API Key" /></label>
-      <label>Etherscan API Key <input id="eth-api-key" type="password" placeholder="(не требуется)" autocomplete="off" aria-label="Etherscan API Key" /></label>
-      <div id="api-key-status" class="hint" style="margin-top:4px;">Активный ключ: встроенный</div>
-      <label style="display:flex;align-items:center;gap:6px;margin-top:6px;"><input type="checkbox" id="auto-verify" />Авто верификация после деплоя</label>
-      <button id="btn-save-settings" type="button" style="margin-top:6px;">Сохранить</button>
-      <div id="settings-status" class="muted" role="status"></div>
-      <p class="hint" style="margin-top:10px;">Пусто → встроенный. Введёте свой → статус изменится на «пользовательский». Ключи не раскрываются.</p>
-    </section>
-    <section id="usage-guide" class="section">
-      <h2>Как это работает</h2>
-      <ol>
-        <li>Подключите кошелёк (или альтернативно).</li>
-        <li>Заполните 4 поля и нажмите «Создать токен».</li>
-        <li>Скопируйте адрес — токен готов.</li>
-        <li>Во вкладке «Токен» отправляйте или управляйте allowance.</li>
-        <li>Верификация: авто (если включено) или кнопка. По сети подберётся нужный встроенный/ваш ключ.</li>
-      </ol>
-      <p class="hint">Фиксированный выпуск. Встроенные ключи можно заменить своими при необходимости.</p>
-    </section>
+    ...existing code...
   </main>
-  <footer><small>Локально. Секреты не сохраняются. <span id="sw-state"></span></small></footer>
-  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
-  <script defer src="js/app.js"></script>
-  <script defer src="js/verifier.js"></script>
-  <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').then(r=>{document.getElementById('sw-state').textContent='[offline ready]';}).catch(()=>{});} </script>
+  ...existing code...
 </body>
 </html>
