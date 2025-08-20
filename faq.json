@@ -1,0 +1,22 @@
+[
+  {
+    "@type": "Question",
+    "name": "Как быстро создать токен?",
+    "acceptedAnswer": {"@type": "Answer","text": "Заполните 4 поля (name, symbol, decimals, supply) и нажмите Создать токен. Контракт компилируется и деплоится автоматически."}
+  },
+  {
+    "@type": "Question",
+    "name": "Поддерживается ли верификация на BscScan/Etherscan?",
+    "acceptedAnswer": {"@type": "Answer","text": "Да, встроены автоматические запросы. Можно включить авто-верификацию или запустить вручную кнопкой Верифицировать."}
+  },
+  {
+    "@type": "Question",
+    "name": "Есть ли mint или скрытые функции?",
+    "acceptedAnswer": {"@type": "Answer","text": "Нет. Контракт фиксирован: только стандартные методы transfer, approve, allowance, без доп. эмиссии."}
+  },
+  {
+    "@type": "Question",
+    "name": "Где хранятся API ключи?",
+    "acceptedAnswer": {"@type": "Answer","text": "Локально в браузере (localStorage). Есть встроенные резервные, ваши используются только при вводе."}
+  }
+]

@@ -1,0 +1,7 @@
+/* TEAM */
+Developer: GENESIS Auto Builder
+Contact: https://example.com
+/* SITE PURPOSE */
+Simple fixed-supply token deployment and verification tool.
+/* THANKS */
+Open-source community, Ethers, BSC.
