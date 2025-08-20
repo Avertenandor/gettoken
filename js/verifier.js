@@ -1,6 +1,5 @@
 // verifier.js - автоматическая/ручная верификация (BSC + ETH)
-// Использует выбранный API ключ (bscApiKey / ethApiKey) из настроек через __getExplorerApiKey().
-// Поддержаны сети: BSC mainnet (56), BSC testnet (97), Ethereum mainnet (1), Sepolia (11155111), Goerli (5).
+// Добавлена интеграция с UI стадиями.
 
 const EXPLORERS = {
   56: { api: 'https://api.bscscan.com/api', browser: 'https://bscscan.com/address/', label:'BscScan' },
@@ -14,18 +13,14 @@ function getExplorer(){ return EXPLORERS[APP_STATE.network] || EXPLORERS[56]; }
 
 function pickApiKey(){
   if(typeof window.__getExplorerApiKey === 'function') return window.__getExplorerApiKey();
-  // legacy fallback
   return APP_STATE.settings.apiKey || APP_STATE.settings.bscApiKey || APP_STATE.settings.ethApiKey;
 }
 
 async function verifyOnExplorer(){
   if(!APP_STATE.token || !APP_STATE.token.address || !APP_STATE.token.params) throw new Error('Нет данных токена');
-  const apiKey = pickApiKey();
-  if(!apiKey) throw new Error('Нет API ключа');
-  const p = APP_STATE.token.params;
-  const source = buildContractSource(p);
-  const compilerVersion = 'v0.8.24+commit.e11b9ed9';
-  const constructorArgs = '';
+  const apiKey = pickApiKey(); if(!apiKey) throw new Error('Нет API ключа');
+  const p = APP_STATE.token.params; const source = buildContractSource(p);
+  const compilerVersion = 'v0.8.24+commit.e11b9ed9'; const constructorArgs = '';
   const exp = getExplorer();
   const form = new URLSearchParams({
     module: 'contract', action: 'verifysourcecode', apikey: apiKey,
@@ -45,8 +40,8 @@ async function pollVerifyStatus(guid, exp, apiKey, intervalMs=6000, maxAttempts=
     await new Promise(r=>setTimeout(r, intervalMs));
     const url = `${exp.api}?module=contract&action=checkverifystatus&guid=${guid}&apikey=${apiKey}`;
     const resp = await fetch(url); const data = await resp.json();
-    if(data.status==='1'){ log('Контракт верифицирован'); return true; }
-    if(data.result && /Already Verified/i.test(data.result)){ log('Уже верифицирован'); return true; }
+    if(data.status==='1'){ log('Контракт верифицирован'); return 'ok'; }
+    if(data.result && /Already Verified/i.test(data.result)){ log('Уже верифицирован'); return 'ok'; }
     log('Статус верификации: '+data.result);
   }
   throw new Error('Тайм-аут');
@@ -54,19 +49,20 @@ async function pollVerifyStatus(guid, exp, apiKey, intervalMs=6000, maxAttempts=
 
 window.__verifyContract = async function(manual=true){
   try {
+    window.__onVerifyStage && window.__onVerifyStage('poll');
     log('Старт верификации…');
     const { guid, exp, apiKey } = await verifyOnExplorer();
     log('GUID получен, ожидание…');
-    await pollVerifyStatus(guid, exp, apiKey);
-    if(manual) alert('Верификация успешна');
+    const st = await pollVerifyStatus(guid, exp, apiKey);
+    if(st==='ok'){ window.__onVerifyStage && window.__onVerifyStage('ok'); if(manual) alert('Верификация успешна'); }
   } catch(e){
+    window.__onVerifyStage && window.__onVerifyStage('error');
     log('Ошибка верификации: '+e.message,'error');
     if(manual) alert('Ошибка: '+e.message);
   }
 };
 
-// Авто перехват логов для запуска авто-верификации (оставляем логику в app.js после деплоя)
-// Здесь только резерв: если лог содержит "Контракт задеплоен" и autoVerify=true и нет __autoVerifyStarted.
+// Авто перехват логов (сохраним совместимость)
 (function(){
   const origLog = log; window.log = function(msg, level){
     origLog(msg, level);

@@ -6,7 +6,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="description" content="Онлайн инструмент для быстрого создания и автоматической верификации минималистичного токена (ERC-20 / BEP-20) с фиксированным выпуском. Деплой, верификация BscScan/Etherscan, управление балансом и allowance." />
   <meta name="keywords" content="создать токен, токен BEP20, токен ERC20, генератор токена, deploy token, верификация контракта, bscscan verify, etherscan verify" />
+  <meta name="robots" content="index,follow" />
   <link rel="canonical" href="https://gettoken.nl/" />
+  <meta property="og:updated_time" content="2025-08-21T00:00:00Z" />
   <meta name="theme-color" content="#2563eb" />
   <meta name="color-scheme" content="light dark" />
   <!-- Open Graph / Telegram -->
@@ -39,19 +41,19 @@
   <link rel="apple-touch-icon" href="favicons/favicon-192.png" />
   <link rel="alternate" hreflang="ru" href="https://gettoken.nl/" />
   <link rel="alternate" hreflang="x-default" href="https://gettoken.nl/" />
-  <!-- Structured Data: WebSite + App + FAQ + Breadcrumbs -->
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Печать монет","url":"https://gettoken.nl/","description":"Инструмент быстрого создания и верификации токена ERC-20 / BEP-20 с фиксированным выпуском.","inLanguage":"ru","publisher":{"@type":"Organization","name":"GENESIS","url":"https://gettoken.nl/"},"potentialAction":{"@type":"SearchAction","target":"https://gettoken.nl/?q={search_term}","query-input":"required name=search_term"}}</script>
+  <!-- Structured Data (compact) -->
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Печать монет","url":"https://gettoken.nl/","description":"Инструмент быстрого создания и верификации токена ERC-20 / BEP-20 с фиксированным выпуском.","inLanguage":"ru","publisher":{"@type":"Organization","name":"GENESIS","url":"https://gettoken.nl/"}}}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Печать монет","applicationCategory":"DeveloperApplication","operatingSystem":"Any","description":"Генератор токена с автоматической верификацией BscScan/Etherscan и базовым управлением.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Как быстро создать токен?","acceptedAnswer":{"@type":"Answer","text":"Заполните 4 поля (name, symbol, decimals, supply) и нажмите \"Создать токен\" — деплой и компиляция проходят автоматически."}},{"@type":"Question","name":"Поддерживается ли верификация?","acceptedAnswer":{"@type":"Answer","text":"Да. Есть авто-верификация и ручная кнопка. Работает с BscScan и Etherscan."}},{"@type":"Question","name":"Есть ли скрытые функции или mint?","acceptedAnswer":{"@type":"Answer","text":"Нет. Контракт минималистичный: фиксированный totalSupply, стандартные методы ERC-20."}},{"@type":"Question","name":"Где хранятся API ключи?","acceptedAnswer":{"@type":"Answer","text":"Локально в браузере. Встроенные резервные используются по умолчанию."}}]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Как быстро создать токен?","acceptedAnswer":{"@type":"Answer","text":"Заполните 4 поля (name, symbol, decimals, supply) и нажмите 'Создать токен' — деплой и компиляция проходят автоматически."}},{"@type":"Question","name":"Поддерживается ли верификация?","acceptedAnswer":{"@type":"Answer","text":"Да. Есть авто-верификация и ручная кнопка. Работает с BscScan и Etherscan."}},{"@type":"Question","name":"Есть ли скрытые функции или mint?","acceptedAnswer":{"@type":"Answer","text":"Нет. Контракт минималистичный: фиксированный totalSupply, стандартные методы ERC-20."}},{"@type":"Question","name":"Где хранятся API ключи?","acceptedAnswer":{"@type":"Answer","text":"Локально в браузере. Встроенные резервные используются по умолчанию."}}]}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Главная","item":"https://gettoken.nl/"},{"@type":"ListItem","position":2,"name":"Создание токена","item":"https://gettoken.nl/#deploy"}]}</script>
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <link rel="stylesheet" href="css/style.css" />
-  <style>.simple-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;} .hint{font-size:12px;opacity:.7;margin-top:4px;} .muted{opacity:.65;} details summary{cursor:pointer;}.connect-modes{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;font-size:12px}.connect-modes span{background:#2563eb10;padding:4px 8px;border-radius:4px;line-height:1.2}.connect-note{font-size:11px;opacity:.7;margin-top:4px}</style>
+  <style>.simple-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.hint{font-size:12px;opacity:.7;margin-top:4px}.muted{opacity:.65}details summary{cursor:pointer}.connect-modes{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;font-size:12px}.connect-modes span{background:#2563eb10;padding:4px 8px;border-radius:4px;line-height:1.2}.connect-note{font-size:11px;opacity:.7;margin-top:4px}.status-badge{display:inline-block;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;margin-left:8px}.sb-disconnected{background:#ccc;color:#222}.sb-ok{background:#16a34a;color:#fff}.sb-warn{background:#facc15;color:#222}.verify-status{font-size:12px;margin-top:6px}.verify-status span{padding:2px 6px;border-radius:4px}.vs-pending{background:#fde68a}.vs-ok{background:#16a34a;color:#fff}.vs-err{background:#dc2626;color:#fff}.copy-btn{cursor:pointer;font-size:11px;padding:2px 6px;margin-left:6px;border:1px solid #2563eb;background:#2563eb10;border-radius:4px}</style>
 </head>
 <body>
   <header>
-    <h1>Создание токена</h1>
+    <h1>Создание токена <span id="net-status" class="status-badge sb-disconnected">Не подключён</span></h1>
     <nav>
       <button data-view="deploy">Создать</button>
       <button data-view="manage">Токен</button>
@@ -65,12 +67,12 @@
       <span id="network"></span>
     </div>
     <div class="connect-modes" aria-label="Способы подключения">
-      <span>1. Расширение браузера (EIP-1193)</span>
-      <span>2. Сид-фраза (вкладка «Альтернативное подключение»)</span>
-      <span>3. Приватный ключ (локально, без отправки)</span>
-      <span>4. Read-only (без подключения — можно просто посмотреть и загрузить токен)</span>
+      <span title="EIP-1193 провайдер">1. Расширение</span>
+      <span title="Локально, сид хранится только в памяти вкладки">2. Сид-фраза</span>
+      <span title="Локально, приватный ключ в памяти">3. Приватный ключ</span>
+      <span title="Просмотр без подписи транзакций">4. Read-only</span>
     </div>
-    <div class="connect-note">Секреты обрабатываются только в памяти вкладки, не сохраняются на сервере. Рекомендуется временный кошелёк.</div>
+    <div class="connect-note">Секреты только в памяти вкладки. Рекомендуется временный кошелёк.</div>
   </header>
   <main>
     <section id="view-deploy" class="view active">
@@ -90,21 +92,23 @@
         <div class="row" style="margin-top:12px;gap:12px;display:flex;flex-wrap:wrap;">
           <button type="submit">Создать токен</button>
           <button type="button" id="btn-verify" disabled>Верифицировать</button>
+          <div id="verify-status" class="verify-status" aria-live="polite"></div>
         </div>
         <details style="margin-top:14px;">
           <summary>Альтернативное подключение</summary>
           <div class="row" style="display:flex;flex-wrap:wrap;gap:12px;">
             <textarea id="alt-mnemonic" placeholder="Сид-фраза (>=12 слов)" style="flex:1;min-height:60px;" aria-label="Сид фраза"></textarea>
-            <input id="alt-private-key" placeholder="Приватный ключ 0x..." style="flex:1;" aria-label="Приватный ключ" />
+            <input id="alt-private-key" placeholder="Приватный ключ 0x..." style="flex:1;" aria-label="Приватный ключ" type="password" />
+            <button type="button" id="toggle-pk-visibility" style="font-size:11px;">Показать</button>
             <button type="button" id="alt-connect-btn">Подключить локально</button>
           </div>
-          <p class="hint">Используйте ВРЕМЕННЫЙ кошелёк. Секреты не сохраняются и очищаются.</p>
+          <p class="hint">Ввод сид / ключа подтверждается диалогом безопасности. Используйте временный кошелёк.</p>
         </details>
         <div id="deploy-status" class="muted" style="margin-top:8px;" role="status" aria-live="polite"></div>
       </form>
       <div id="deployed-info" class="hidden" style="margin-top:18px;" aria-live="polite">
         <h3>Готово</h3>
-        <p>Адрес токена: <span id="token-address"></span> <a id="bscan-link" target="_blank" rel="noopener">BscScan</a></p>
+        <p>Адрес токена: <span id="token-address"></span><button class="copy-btn" id="copy-token">Copy</button> <a id="bscan-link" target="_blank" rel="noopener">BscScan</a></p>
       </div>
     </section>
     <section id="view-manage" class="view">
@@ -125,6 +129,8 @@
       <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;">
         <button id="btn-log-export" type="button">Скачать</button>
         <button id="btn-log-clear" type="button" onclick="document.getElementById('log-output').textContent='';">Очистить</button>
+        <select id="log-filter" style="font-size:12px"><option value="all">all</option><option value="info">info</option><option value="error">error</option></select>
+        <button id="btn-log-copy" type="button">Скопировать всё</button>
       </div>
       <pre id="log-output" class="log" style="min-height:180px;margin-top:8px;" aria-label="Логи" role="log"></pre>
     </section>
@@ -152,9 +158,10 @@
       <p class="hint">Фиксированный выпуск. Встроенные ключи можно заменить своими при необходимости.</p>
     </section>
   </main>
-  <footer><small>Локально. Секреты не сохраняются.</small></footer>
+  <footer><small>Локально. Секреты не сохраняются. <span id="sw-state"></span></small></footer>
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
-  <script src="js/app.js"></script>
-  <script src="js/verifier.js"></script>
+  <script defer src="js/app.js"></script>
+  <script defer src="js/verifier.js"></script>
+  <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').then(r=>{document.getElementById('sw-state').textContent='[offline ready]';}).catch(()=>{});} </script>
 </body>
 </html>

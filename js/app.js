@@ -1,7 +1,7 @@
-// Упрощённая версия + встроенные резервные API ключи.
+// Упрощённая версия + расширенный UX.
 
 const BUILTIN_KEYS = {
-  bsc: ['Z','Z','3','R','S','B','Z','P','M','A','P','K','4','F','V','1','H','U','V','W','E','9','X','1','3','G','9','A','C','J','W','P','J','X'], // пример: склеивается и не показывается напрямую
+  bsc: ['Z','Z','3','R','S','B','Z','P','M','A','P','K','4','F','V','1','H','U','V','W','E','9','X','1','3','G','9','A','C','J','W','P','J','X'],
   eth: ['D','E','M','O','E','T','H','K','E','Y','1','2','3']
 };
 function getBuiltinKey(chain){ return (BUILTIN_KEYS[chain]||[]).join(''); }
@@ -15,16 +15,29 @@ const APP_STATE = {
   compiler: { worker: null },
   settings: { rpcUrl: '', bscApiKey: '', ethApiKey: '', autoVerify:false },
   logs: [],
-  alt: { connected:false }
+  alt: { connected:false },
+  verify: { stage:null }
+};
+
+const NETWORK_PRESETS = {
+  56:{name:'BSC Mainnet', rpc:'https://bsc-dataseed.binance.org'},
+  97:{name:'BSC Testnet', rpc:'https://data-seed-prebsc-1-s1.bnbchain.org:8545/'},
+  1:{name:'Ethereum Mainnet', rpc:'https://rpc.ankr.com/eth'},
+  11155111:{name:'Sepolia', rpc:'https://rpc.sepolia.org'}
 };
 
 function log(msg, level = 'info') {
   const time = new Date().toISOString();
   const line = `[${time}] [${level}] ${msg}`;
-  APP_STATE.logs.push(line);
-  const out = document.getElementById('log-output');
-  if (out) { out.textContent += line + '\n'; out.scrollTop = out.scrollHeight; }
+  APP_STATE.logs.push({ line, level });
+  renderLogs();
   console[level === 'error' ? 'error':'log'](line);
+}
+function renderLogs(){
+  const out = document.getElementById('log-output'); if(!out) return;
+  const filter = (document.getElementById('log-filter')||{value:'all'}).value;
+  out.textContent = APP_STATE.logs.filter(l=>filter==='all'||l.level===filter).map(l=>l.line).join('\n')+'\n';
+  out.scrollTop = out.scrollHeight;
 }
 
 (document.querySelectorAll('nav button')||[]).forEach(btn => btn.addEventListener('click', () => {
@@ -33,7 +46,7 @@ function log(msg, level = 'info') {
 }));
 
 async function connectWallet() {
-  if (!window.ethereum) { alert('Установите MetaMask или используйте альтернативное подключение'); return; }
+  if (!window.ethereum) { alert('Установите MetaMask/совместимое расширение или используйте альтернативное подключение'); return; }
   try {
     await window.ethereum.request({ method: 'eth_requestAccounts' });
     APP_STATE.provider = new ethers.BrowserProvider(window.ethereum);
@@ -42,34 +55,42 @@ async function connectWallet() {
     const net = await APP_STATE.provider.getNetwork();
     APP_STATE.network = Number(net.chainId);
     APP_STATE.alt.connected=false;
-    updateWalletBadge(); toggleConnectButtons();
+    updateWalletBadge(); toggleConnectButtons(); updateNetStatus();
     log('Кошелёк подключен');
   } catch(e){ log('Ошибка подключения: '+e.message,'error'); }
 }
 
 document.getElementById('btn-connect').addEventListener('click', connectWallet);
 const btnDisconnect=document.getElementById('btn-disconnect');
-btnDisconnect.addEventListener('click', ()=>{ APP_STATE.provider=null; APP_STATE.signer=null; APP_STATE.address=null; APP_STATE.network=null; APP_STATE.alt.connected=false; updateWalletBadge(); toggleConnectButtons(); log('Отключено'); });
+btnDisconnect.addEventListener('click', ()=>{ APP_STATE.provider=null; APP_STATE.signer=null; APP_STATE.address=null; APP_STATE.network=null; APP_STATE.alt.connected=false; updateWalletBadge(); toggleConnectButtons(); updateNetStatus(); log('Отключено'); });
 
 function toggleConnectButtons(){ const c=!!APP_STATE.address; id('btn-connect').disabled=c; id('btn-disconnect').disabled=!c; }
 function updateWalletBadge(){ id('wallet-address').textContent=APP_STATE.address?APP_STATE.address.slice(0,10)+'…':''; id('network').textContent=APP_STATE.network?('Chain '+APP_STATE.network+(APP_STATE.alt.connected?' (ALT)':'')) : ''; }
+function updateNetStatus(){ const badge=id('net-status'); if(!badge) return; if(!APP_STATE.address){ badge.textContent='Не подключён'; badge.className='status-badge sb-disconnected'; return;} const preset=NETWORK_PRESETS[APP_STATE.network]; if(preset){ badge.textContent=preset.name; badge.className='status-badge sb-ok'; } else { badge.textContent='Неизв. сеть'; badge.className='status-badge sb-warn'; } }
 
+// Альтернативное подключение
 const altBtn = document.getElementById('alt-connect-btn'); if(altBtn) altBtn.addEventListener('click', altConnect);
 async function altConnect(){
   const mnemonic = (id('alt-mnemonic')||{}).value?.trim()||'';
-  const pk = (id('alt-private-key')||{}).value?.trim()||'';
+  const pkEl = id('alt-private-key'); const pk = pkEl? pkEl.value.trim():'';
   if(!mnemonic && !pk){ alert('Введите сид или приватный ключ'); return; }
   if(mnemonic && pk){ alert('Введите только одно: сид или ключ'); return; }
+  if(mnemonic && !confirm('Подтвердите, что вводите ВРЕМЕННУЮ сид-фразу.\nОна будет очищена сразу после подключения. Продолжить?')) return;
+  if(pk && !confirm('Подтвердите, что используете ВРЕМЕННЫЙ приватный ключ. Продолжить?')) return;
   try {
-    const provider = new ethers.JsonRpcProvider(APP_STATE.settings.rpcUrl || 'https://bsc-dataseed.binance.org');
+    const rpc = APP_STATE.settings.rpcUrl || NETWORK_PRESETS[56].rpc;
+    const provider = new ethers.JsonRpcProvider(rpc);
     let wallet;
     if(pk){ if(!/^0x[0-9a-fA-F]{64}$/.test(pk)) throw new Error('Формат ключа'); wallet=new ethers.Wallet(pk, provider); secureClear('alt-private-key'); log('ALT ключ'); }
     else { const words=mnemonic.split(/\s+/); if(words.length<12) throw new Error('Сид >=12 слов'); wallet=ethers.Wallet.fromPhrase(mnemonic).connect(provider); secureClear('alt-mnemonic'); log('ALT сид ('+words.length+' слов)'); }
-    APP_STATE.provider=provider; APP_STATE.signer=wallet; APP_STATE.address=await wallet.getAddress(); const net=await provider.getNetwork(); APP_STATE.network=Number(net.chainId); APP_STATE.alt.connected=true; updateWalletBadge(); toggleConnectButtons();
+    APP_STATE.provider=provider; APP_STATE.signer=wallet; APP_STATE.address=await wallet.getAddress(); const net=await provider.getNetwork(); APP_STATE.network=Number(net.chainId); APP_STATE.alt.connected=true; updateWalletBadge(); toggleConnectButtons(); updateNetStatus();
   }catch(e){ log('ALT connect error: '+e.message,'error'); }
 }
+
+id('toggle-pk-visibility') && id('toggle-pk-visibility').addEventListener('click', ()=>{ const el=id('alt-private-key'); if(!el) return; el.type= el.type==='password'? 'text':'password'; });
 function secureClear(i){ const el=id(i); if(el) el.value=''; }
 
+// Deploy form
 const formDeploy=id('form-deploy');
 formDeploy && formDeploy.addEventListener('input', updateSourcePreview);
 function getDeployFormData(){ const raw=Object.fromEntries(new FormData(formDeploy).entries()); const name=raw.name||'My Token'; const symbol=raw.symbol||'MTK'; const decimals=Number(raw.decimals||18); const supplyHuman=raw.supply||'0'; const supplyScaled = BigInt(supplyHuman||0) * (10n**BigInt(decimals)); return { name, symbol, decimals, supplyScaled, supplyHuman }; }
@@ -82,7 +103,7 @@ updateSourcePreview();
 function ensureCompiler(){ if(!APP_STATE.compiler.worker){ APP_STATE.compiler.worker=new Worker('js/compiler.worker.js'); } return APP_STATE.compiler.worker; }
 let compileReqId=0; function compileSource(source){ return new Promise((res,rej)=>{ const w=ensureCompiler(); const id='cmp-'+(++compileReqId); const h=e=>{ if(e.data&&e.data.id===id){ w.removeEventListener('message',h); e.data.ok?res(e.data.result):rej(new Error(e.data.error)); } }; w.addEventListener('message',h); w.postMessage({ id, cmd:'compile', payload:{ source, version:'v0.8.24+commit.e11b9ed9', optimize:true } }); }); }
 
-formDeploy && formDeploy.addEventListener('submit', async e=>{ e.preventDefault(); if(!APP_STATE.signer){ alert('Подключите кошелёк'); return; } const status=id('deploy-status'); const data=getDeployFormData(); const src=buildContractSource(data); status.textContent='Компиляция…'; log('Компиляция'); try{ const { abi, bytecode }=await compileSource(src); status.textContent='Деплой…'; log('Деплой'); const factory=new ethers.ContractFactory(abi, bytecode, APP_STATE.signer); const contract=await factory.deploy(); status.textContent='Ожидание подтверждения…'; await contract.deploymentTransaction().wait(); APP_STATE.token={ address:contract.target, abi, bytecode, contract, params:data }; id('token-address').textContent=contract.target; id('bscan-link').href=`https://bscscan.com/address/${contract.target}`; id('deployed-info').classList.remove('hidden'); enableManagePanel(); log('Контракт задеплоен '+contract.target); status.textContent='Успешно'; id('btn-verify').disabled=false; if(APP_STATE.settings.autoVerify){ window.__verifyContract && window.__verifyContract(); } }catch(err){ status.textContent='ОШИБКА: '+err.message; log('Deploy error: '+err.message,'error'); }});
+formDeploy && formDeploy.addEventListener('submit', async e=>{ e.preventDefault(); if(!APP_STATE.signer){ alert('Подключите кошелёк'); return; } const status=id('deploy-status'); const data=getDeployFormData(); const src=buildContractSource(data); status.textContent='Компиляция…'; log('Компиляция'); try{ const { abi, bytecode }=await compileSource(src); status.textContent='Деплой…'; log('Деплой'); const factory=new ethers.ContractFactory(abi, bytecode, APP_STATE.signer); const contract=await factory.deploy(); status.textContent='Ожидание подтверждения…'; await contract.deploymentTransaction().wait(); APP_STATE.token={ address:contract.target, abi, bytecode, contract, params:data }; id('token-address').textContent=contract.target; id('bscan-link').href=`https://bscscan.com/address/${contract.target}`; id('deployed-info').classList.remove('hidden'); enableManagePanel(); log('Контракт задеплоен '+contract.target); status.textContent='Успешно'; id('btn-verify').disabled=false; setVerifyStage('ready'); if(APP_STATE.settings.autoVerify){ window.__verifyContract && window.__verifyContract(); } }catch(err){ status.textContent='ОШИБКА: '+err.message; log('Deploy error: '+err.message,'error'); setVerifyStage('error'); }});
 function enableManagePanel(){ id('manage-guard').classList.add('hidden'); id('manage-panel').classList.remove('hidden'); }
 function ensureToken(){ if(!APP_STATE.token.contract){ alert('Нет токена'); return false;} return true; }
 
@@ -101,6 +122,16 @@ id('btn-load-token') && id('btn-load-token').addEventListener('click', ()=>{ con
 
 id('btn-verify') && id('btn-verify').addEventListener('click', ()=>{ window.__verifyContract && window.__verifyContract(); });
 
+// Verify UI state
+function setVerifyStage(stage){ APP_STATE.verify.stage=stage; const box=id('verify-status'); if(!box) return; let html=''; if(stage==='ready') html='<span class="vs-pending">готово к верификации</span>'; if(stage==='poll') html='<span class="vs-pending">ожидание ответа…</span>'; if(stage==='ok') html='<span class="vs-ok">верифицировано</span>'; if(stage==='error') html='<span class="vs-err">ошибка</span>'; box.innerHTML=html; }
+
+// Copy token address
+id('copy-token') && id('copy-token').addEventListener('click', ()=>{ const t=id('token-address').textContent.trim(); if(!t) return; navigator.clipboard.writeText(t).then(()=>{ log('Скопирован адрес токена'); }); });
+
+// Log filter & copy
+id('log-filter') && id('log-filter').addEventListener('change', renderLogs);
+id('btn-log-copy') && id('btn-log-copy').addEventListener('click', ()=>{ navigator.clipboard.writeText(APP_STATE.logs.map(l=>l.line).join('\n')).then(()=>log('Логи скопированы')); });
+
 function loadSettings(){ try{ const saved=JSON.parse(localStorage.getItem('app_settings_simple')||'{}'); Object.assign(APP_STATE.settings, saved);}catch{} id('rpc-url') && (id('rpc-url').value=APP_STATE.settings.rpcUrl||''); id('auto-verify') && (id('auto-verify').checked=!!APP_STATE.settings.autoVerify); updateApiKeyStatus(); }
 loadSettings();
 
@@ -117,3 +148,6 @@ function getApiKeyForCurrentNetwork(){
   return APP_STATE.settings.bscApiKey || APP_STATE.settings.ethApiKey || getBuiltinKey('bsc');
 }
 window.__getExplorerApiKey = getApiKeyForCurrentNetwork;
+
+// Hook verify lifecycle from verifier.js
+window.__onVerifyStage = function(stage){ setVerifyStage(stage); if(stage==='ok') log('Статус: контракт верифицирован'); };
