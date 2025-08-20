@@ -11,52 +11,18 @@
     .connect-options .hint { font-size: 13px; opacity: 0.7; margin-top: 4px; }
     .connect-options textarea, .connect-options input { margin-top: 8px; }
   </style>
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicons/favicon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/favicons/favicon-512.png" />
+  <link rel="icon" type="image/svg+xml" href="/favicons/favicon.svg" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicons/favicon-192.png" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <meta name="theme-color" content="#2563eb" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   ...existing code...
 </head>
 <body>
-  <header>
-    <h1>Создание токена <span id="net-status" class="status-badge sb-disconnected">Не подключён</span></h1>
-    <nav>
-      <button data-view="connect">Подключить кошелёк</button>
-      <button data-view="deploy">Создать</button>
-      <button data-view="manage">Токен</button>
-      <button data-view="logs">Логи</button>
-      <button data-view="settings">Настройки</button>
-    </nav>
-  </header>
-  <main>
-    <section id="view-connect" class="view active">
-      <h2>Подключить кошелёк</h2>
-      <div class="connect-options">
-        <h3>Варианты подключения:</h3>
-        <ol>
-          <li><b>Расширение браузера (MetaMask, OKX, TrustWallet)</b><br>
-            <button id="btn-connect" title="Подключить через расширение">Подключить через расширение</button>
-            <span id="wallet-address"></span>
-            <span id="network"></span>
-            <div class="hint">Рекомендуется для большинства пользователей. Безопасно, не требует передачи секретов.</div>
-          </li>
-          <li><b>Сид-фраза (12 или 24 слова)</b><br>
-            <textarea id="alt-mnemonic" placeholder="Введите сид-фразу (12 или 24 слова)" style="width:100%;min-height:60px;" aria-label="Сид фраза"></textarea>
-            <button type="button" id="alt-connect-mnemonic">Подключить по сид-фразе</button>
-            <div class="hint">Вводите ТОЛЬКО временную сид-фразу. После подключения она будет очищена. Проверяется валидность: 12 или 24 слова, только латиница.</div>
-          </li>
-          <li><b>Приватный ключ</b><br>
-            <input id="alt-private-key" placeholder="Введите приватный ключ 0x..." style="width:100%;" aria-label="Приватный ключ" type="password" />
-            <button type="button" id="toggle-pk-visibility" style="font-size:11px;">Показать</button>
-            <button type="button" id="alt-connect-pk">Подключить по приватному ключу</button>
-            <div class="hint">Вводите ТОЛЬКО временный приватный ключ. После подключения он будет очищен. Проверяется валидность: 0x + 64 символа.</div>
-          </li>
-          <li><b>Read-only</b><br>
-            <button type="button" id="read-only-btn">Только просмотр (без подключения)</button>
-            <div class="hint">Можно просматривать токен и баланс без подключения кошелька.</div>
-          </li>
-        </ol>
-      </div>
-      <div id="connect-status" class="muted" style="margin-top:8px;" role="status" aria-live="polite"></div>
-    </section>
-    ...existing code...
-  </main>
   ...existing code...
 </body>
 </html>
