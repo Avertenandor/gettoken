@@ -22,8 +22,8 @@ jobs:
         run: sleep 3
       - name: Lighthouse (index)
         run: |
-          lhci collect --url=http://localhost:8080/Печать%20монет%20веб%20версия/index.html --numberOfRuns=1
-          lhci assert --config=./Печать\ монет\ веб\ версия/lhci.config.json || true
+          lhci collect --url=http://localhost:8080/index.html --numberOfRuns=1
+          lhci assert --preset=lighthouse:recommended || true
       - name: Save artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -34,9 +34,8 @@ jobs:
           node - <<'EOF'
           const fs=require('fs');
           const path=require('path');
-          const wPath=path.join(process.cwd(),'Печать монет веб версия','js','compiler.worker.js');
+          const wPath=path.join(process.cwd(),'js','compiler.worker.js');
           if(!fs.existsSync(wPath)) { console.error('worker missing'); process.exit(1); }
-          // simple static check for version string and compile keyword
           const txt=fs.readFileSync(wPath,'utf8');
           if(!/soljson|compile/i.test(txt)){ console.error('compile markers not found'); process.exit(1); }
           console.log('Worker static smoke OK');

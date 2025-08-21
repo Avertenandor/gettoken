@@ -34,6 +34,21 @@ function showSecurityLock(){
 // Подключение через расширение
 id('btn-connect') && id('btn-connect').addEventListener('click', connectWallet);
 
+// --- Allowance check ---
+id('check-allowance')?.addEventListener('click', async ()=>{
+  try {
+    if(!APP_STATE.token || !APP_STATE.token.contract){ log('Нет контракта','error'); return; }
+    if(!APP_STATE.address){ log('Подключите кошелёк','error'); return; }
+    const sp = (id('allowance-spender')||{}).value?.trim()||'';
+    if(!/^0x[0-9a-fA-F]{40}$/.test(sp)){ log('Неверный spender','error'); return; }
+    const dec = await APP_STATE.token.contract.decimals();
+    const raw = await APP_STATE.token.contract.allowance(APP_STATE.address, sp);
+    const human = Number(raw)/(10**dec);
+    const out = id('allowance-value'); if(out) out.textContent = human.toString();
+    __toast && __toast('Allowance обновлён','info',2000);
+  } catch(e){ log('Ошибка allowance: '+(e.message||e),'error'); }
+});
+
 // Подключение по сид-фразе
 id('alt-connect-mnemonic') && id('alt-connect-mnemonic').addEventListener('click', async () => {
   if(!window.__secAttempt('seed')) return;
@@ -206,15 +221,7 @@ id('token-form')?.addEventListener('submit', async (e)=>{
     const contract = await factory.deploy(initialSupply);
     const deployTx = contract.deploymentTransaction();
     log('Deploy tx: '+deployTx.hash);
-    const explorerBase = (function(net){
-      switch(net){
-        case 1: return 'https://etherscan.io';
-        case 11155111: return 'https://sepolia.etherscan.io';
-        case 56: return 'https://bscscan.com';
-        case 97: return 'https://testnet.bscscan.com';
-        default: return '';
-      }
-    })(APP_STATE.network);
+  const explorerBase = (typeof getExplorerBase==='function') ? getExplorerBase(APP_STATE.network) : '';
     const link = id('bscan-link'); if(link && explorerBase){ link.href = `${explorerBase}/tx/${deployTx.hash}`; link.classList.remove('hidden'); link.textContent='Tx'; }
     await deployTx.wait();
     APP_STATE.token = { address: contract.target, abi: result.abi, bytecode: result.bytecode, contract, params:{ name, symbol, decimals, supply: initialSupply.toString() } };
