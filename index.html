@@ -21,7 +21,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="./favicons/favicon-192.png" />
   <link rel="manifest" href="./site.webmanifest" />
   <meta name="theme-color" content="#2563eb" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://binaries.soliditylang.org; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.bscscan.com https://api-testnet.bscscan.com https://bsc-dataseed.binance.org https://data-seed-prebsc-1-s1.binance.org:8545 https://binaries.soliditylang.org; font-src 'self'; form-action 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests"> 
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://binaries.soliditylang.org; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.etherscan.io https://api.bscscan.com https://api-testnet.bscscan.com https://bsc-dataseed.binance.org https://data-seed-prebsc-1-s1.binance.org:8545 https://binaries.soliditylang.org; font-src 'self'; form-action 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests"> 
   <!-- Ethers.js (UMD) для работы с кошельком -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js" integrity="sha384-3R5I9P2Y5xR0lU1YQ7i1eX0t6fjJm6C6LkQtcVfMfm8p4A4J6+1mAvGbyV6H8d4Y" crossorigin="anonymous"></script>
 </head>
@@ -50,7 +50,7 @@
             <span id="network"></span>
             <div class="hint">Рекомендуется для большинства пользователей. Безопасно, не требует передачи секретов.</div>
           </li>
-          <li><details><summary><b>Сид / Приватный ключ (НЕ РЕКОМЕНДУЕТСЯ)</b></summary>
+          <li id="risk-modes-block" style="display:none;"><details><summary><b>Сид / Приватный ключ (НЕ РЕКОМЕНДУЕТСЯ)</b></summary>
             <div style="margin-top:8px;">
               <textarea id="alt-mnemonic" placeholder="Сид-фраза 12/24 слов" style="width:100%;min-height:60px;" aria-label="Сид фраза"></textarea>
               <button type="button" id="alt-connect-mnemonic">Подключить по сид-фразе</button>
@@ -87,8 +87,7 @@
     <section id="view-manage" class="view">
       <h2>Токен</h2>
       <div class="section" id="token-panel" aria-live="polite">
-        <div><strong>Адрес:</strong> <span id="token-address" class="mono"></span> <a id="bscan-link" href="#" target="_blank" rel="noopener" class="hidden">BscScan</a></div>
-    <button id="copy-address-btn" type="button" disabled>Copy</button> <button id="watch-asset-btn" type="button" disabled>Add to Wallet</button>
+  <div><strong>Адрес:</strong> <span id="token-address" class="mono"></span> <button id="copy-address-btn" type="button" disabled>Copy</button> <button id="watch-asset-btn" type="button" disabled>Add to Wallet</button> <a id="bscan-link" href="#" target="_blank" rel="noopener" class="hidden">Explorer</a></div>
         <div id="deployed-info" class="hidden" style="margin-top:6px;">
           <span id="token-balance" class="mono"></span>
           <button id="refresh-balance" type="button">Обновить баланс</button>
@@ -110,6 +109,11 @@
           <button id="btn-load-project" type="button">Загрузить (ввести адрес)</button>
           <button id="verify-btn-manage" type="button" disabled>Верифицировать</button>
           <button id="verify-cancel-btn" type="button" disabled>Отмена</button>
+        </div>
+        <div class="row" style="margin-top:10px;">
+          <input id="allowance-spender" placeholder="Spender для allowance" size="40" />
+          <button id="check-allowance" type="button" disabled>Allowance</button>
+          <span id="allowance-value" class="mono" style="font-size:12px;"></span>
         </div>
         <div id="verify-status" class="muted" style="margin-top:6px;"></div>
         <div id="verify-progress-container" class="hidden" style="margin-top:4px;">
@@ -149,7 +153,8 @@
           </select>
         </label>
         <label>RPC URL: <input id="rpc-url" type="text" /></label>
-        <label>API Key (Etherscan V2): <input id="api-key" type="text" /></label>
+  <label>API Key (Etherscan V2): <input id="api-key" type="text" /></label>
+  <label style="display:block;margin-top:6px;"><input type="checkbox" id="enable-risky-modes" /> Разрешить сид / приватный ключ (я понимаю риски)</label>
   <button type="button" id="save-settings">Сохранить</button>
   <button type="button" id="clear-storage">Очистить локальные данные</button>
         <div id="settings-status" class="muted" style="margin-top:8px;" role="status" aria-live="polite"></div>
@@ -165,6 +170,7 @@
           <input id="batch-amount" type="number" step="0.0001" min="0" placeholder="Количество" style="width:140px;" />
           <input id="batch-delay" type="number" min="0" value="2500" style="width:120px;" title="Задержка мс" />
           <input id="batch-retries" type="number" min="0" value="2" style="width:100px;" title="Повторы" />
+          <input id="batch-concurrency" type="number" min="1" value="1" style="width:100px;" title="Параллельно" />
           <button id="batch-init" type="button">Init</button>
           <button id="batch-start" type="button" disabled>Start</button>
           <button id="batch-pause" type="button" disabled>Pause</button>
@@ -211,7 +217,19 @@
   <script defer>
     if('serviceWorker' in navigator){
       window.addEventListener('load', ()=>{
-        navigator.serviceWorker.register('./sw.js').catch(e=>console.error('SW register fail', e));
+        navigator.serviceWorker.register('./sw.js').then(reg=>{
+          reg.addEventListener('updatefound', ()=>{
+            const nw = reg.installing; if(!nw) return;
+            nw.addEventListener('statechange', ()=>{
+              if(nw.state==='installed' && navigator.serviceWorker.controller){
+                if(confirm('Доступна новая версия. Обновить сейчас?')){
+                  reg.waiting && reg.waiting.postMessage('skipWaiting');
+                  setTimeout(()=>location.reload(),500);
+                }
+              }
+            });
+          });
+        }).catch(e=>console.error('SW register fail', e));
       });
     }
   </script>

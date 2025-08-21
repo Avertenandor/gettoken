@@ -1,0 +1,31 @@
+name: CI
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install Lighthouse CI
+        run: npm install -g @lhci/cli
+      - name: Start static server
+        run: npx http-server . -p 8080 &
+      - name: Wait
+        run: sleep 3
+      - name: Lighthouse (index)
+        run: lhci collect --url=http://localhost:8080/Печать%20монет%20веб%20версия/index.html || true
+      - name: Save artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: lhci-data
+          path: .lighthouseci
+      - name: Smoke compile worker
+        run: |
+          grep -q 'compiler.worker.js' Печать\ монет\ веб\ версия/index.html
