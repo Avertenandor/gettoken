@@ -80,7 +80,7 @@
           <input id="token-supply" type="number" min="1" value="1000000" placeholder="Начальный выпуск" />
         </div>
   <button type="submit">Создать токен</button>
-  <!-- Удалён дублирующий verify-btn (основной в панели токена) -->
+  <!-- verify здесь отсутствует -->
       </form>
       <div id="deploy-status" class="muted" style="margin-top:8px;" role="status" aria-live="polite"></div>
     </section>
@@ -107,7 +107,7 @@
           <button id="btn-save-project" type="button" disabled>Сохранить проект</button>
           <button id="btn-list-projects" type="button">Список проектов</button>
           <button id="btn-load-project" type="button">Загрузить (ввести адрес)</button>
-          <button id="verify-btn" type="button" disabled>Верифицировать</button>
+          <button id="verify-btn-manage" type="button" disabled>Верифицировать</button>
           <button id="verify-cancel-btn" type="button" disabled>Отмена</button>
         </div>
         <div id="verify-status" class="muted" style="margin-top:6px;"></div>
@@ -139,8 +139,16 @@
     <section id="view-settings" class="view">
       <h2>Настройки</h2>
       <div class="section">
+        <label>Сеть:
+          <select id="network-select">
+            <option value="56">BSC</option>
+            <option value="97">BSC Testnet</option>
+            <option value="1">Ethereum</option>
+            <option value="11155111">Sepolia</option>
+          </select>
+        </label>
         <label>RPC URL: <input id="rpc-url" type="text" /></label>
-  <label>API Key: <input id="api-key" type="text" /></label>
+        <label>API Key (Etherscan V2): <input id="api-key" type="text" /></label>
   <button type="button" id="save-settings">Сохранить</button>
   <button type="button" id="clear-storage">Очистить локальные данные</button>
         <div id="settings-status" class="muted" style="margin-top:8px;" role="status" aria-live="polite"></div>
@@ -193,6 +201,12 @@
   <script defer src="./js/batch.js"></script>
   <script defer src="./js/app.js"></script>
   <script defer src="./js/verifier.js"></script>
+  <script defer>
+    document.addEventListener('DOMContentLoaded', ()=>{
+      const sel = document.getElementById('network-select');
+      if(sel){ sel.value = String(APP_STATE.settings.networkId||56); sel.addEventListener('change', ()=>{ APP_STATE.settings.networkId = parseInt(sel.value,10); saveSettings(); }); }
+    });
+  </script>
   <script defer>
     if('serviceWorker' in navigator){
       window.addEventListener('load', ()=>{

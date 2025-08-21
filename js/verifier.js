@@ -76,6 +76,6 @@ function updateVerifyProgress(fraction, text){
 	const t = document.getElementById('verify-progress-text'); if(t) t.textContent = text;
 }
 
-document.getElementById('verify-btn')?.addEventListener('click', verifyContract);
+document.getElementById('verify-btn-manage')?.addEventListener('click', verifyContract);
 document.getElementById('verify-cancel-btn')?.addEventListener('click', ()=>{ __verifyCancel = true; const b=document.getElementById('verify-cancel-btn'); if(b) b.disabled=true; });
 window.__verifyContract = verifyContract;

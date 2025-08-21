@@ -4,6 +4,8 @@ function log(msg, type='info'){console[type==='error'?'error':'log'](msg);} // �
 
 // --- Глобальное состояние приложения ---
 const NETWORK_PRESETS = {
+	1: { name: 'Ethereum', rpc: 'https://rpc.ankr.com/eth' },
+	11155111: { name: 'Sepolia', rpc: 'https://rpc.sepolia.org' },
 	56: { name: 'BSC', rpc: 'https://bsc-dataseed.binance.org' },
 	97: { name: 'BSC Testnet', rpc: 'https://data-seed-prebsc-1-s1.binance.org:8545' }
 };
@@ -14,7 +16,11 @@ const APP_STATE = {
 	address: null,
 	network: null,
 	alt: { connected: false },
-	settings: { rpcUrl: localStorage.getItem('rpcUrl')||'', apiKey: localStorage.getItem('apiKey')||'' },
+	settings: {
+		rpcUrl: localStorage.getItem('rpcUrl')||'',
+		apiKey: localStorage.getItem('apiKey')||'',
+		networkId: parseInt(localStorage.getItem('networkId')||'56',10) // default BSC
+	},
 	token: { address:null, abi:null, bytecode:null, contract:null, params:null },
 	batch: { list:[], running:false },
 	security: { seedAttempts:0, pkAttempts:0, lastAttemptTs:0 }
@@ -59,7 +65,20 @@ async function connectWallet(){
 		const accounts = await injected.request({ method: 'eth_requestAccounts' });
 		if(!accounts || !accounts.length) throw new Error('Аккаунты не возвращены');
 		const chainIdHex = await injected.request({ method: 'eth_chainId' });
-		const chainId = Number(chainIdHex);
+		let chainId = Number(chainIdHex);
+		const desired = APP_STATE.settings.networkId;
+		if(desired && desired !== chainId){
+			// Пытаемся переключить сеть
+			try { await injected.request({ method:'wallet_switchEthereumChain', params:[{ chainId:'0x'+desired.toString(16) }] }); chainId = desired; }
+			catch(_){
+				// Пытаемся добавить
+				const preset = NETWORK_PRESETS[desired];
+				if(preset){
+					try { await injected.request({ method:'wallet_addEthereumChain', params:[{ chainId:'0x'+desired.toString(16), chainName:preset.name, rpcUrls:[preset.rpc] }] }); chainId = desired; }
+					catch(e){ log('Не удалось переключить сеть: '+e.message,'error'); }
+				}
+			}
+		}
 		const rpcUrl = APP_STATE.settings.rpcUrl || (NETWORK_PRESETS[chainId]?.rpc);
 		let provider;
 		if(window.ethers){
@@ -87,7 +106,6 @@ async function connectWallet(){
 }
 
 function disconnectWallet(){
-	secureWipeString(APP_STATE.settings.apiKey);
 	APP_STATE.security.seedAttempts = 0; APP_STATE.security.pkAttempts=0;
 	APP_STATE.provider = null;
 	APP_STATE.signer = null;
@@ -101,6 +119,7 @@ function disconnectWallet(){
 function saveSettings(){
 	if(APP_STATE.settings.rpcUrl) localStorage.setItem('rpcUrl', APP_STATE.settings.rpcUrl);
 	if(APP_STATE.settings.apiKey) localStorage.setItem('apiKey', APP_STATE.settings.apiKey);
+	if(APP_STATE.settings.networkId!=null) localStorage.setItem('networkId', String(APP_STATE.settings.networkId));
 }
 
 async function fetchTokenBalance(){
@@ -112,7 +131,7 @@ async function fetchTokenBalance(){
 	} catch(e){ log('Ошибка получения баланса: '+e.message,'error'); return null; }
 }
 
-function secureWipeString(str){ if(!str) return; try { for(let i=0;i<str.length;i++){ str[i]='\0'; } } catch(_){} }
+// secureWipeString удалён: строки неизменяемы, не используем хранение секретов вне input
 window.__secAttempt = function(type){
 	const now = Date.now();
 	if(now - APP_STATE.security.lastAttemptTs > 60000){ APP_STATE.security.seedAttempts=0; APP_STATE.security.pkAttempts=0; }
