@@ -6,7 +6,7 @@ async function verifyContract(){
 	if(!APP_STATE.settings.apiKey){ log('Нет API ключа','error'); id('verify-status').textContent='Укажите API ключ в настройках'; return; }
 	const statusEl = id('verify-status'); if(statusEl) statusEl.textContent='Отправка на верификацию...';
 	try {
-		const { abi, bytecode, params } = APP_STATE.token;
+		const { params } = APP_STATE.token;
 		const contractName = (params?.symbol)||'Token';
 		// Минимальный source должен совпасть с деплоем; берём шаблон из app.js (повторяем формирование)
 		const source = `// SPDX-License-Identifier: MIT\npragma solidity ^0.8.24;\ncontract ${params.symbol} {\nstring public name = '${params.name}';\nstring public symbol = '${params.symbol}';\nuint8 public decimals = ${params.decimals};\nuint256 public totalSupply;\nmapping(address=>uint256) public balanceOf;\nevent Transfer(address indexed from,address indexed to,uint256 value);\nconstructor(uint256 initialSupply){totalSupply=initialSupply;balanceOf[msg.sender]=initialSupply;emit Transfer(address(0),msg.sender,initialSupply);}\nfunction transfer(address to,uint256 value) external returns(bool){require(balanceOf[msg.sender]>=value,'bal');unchecked{balanceOf[msg.sender]-=value;balanceOf[to]+=value;}emit Transfer(msg.sender,to,value);return true;}\n}`;
@@ -17,7 +17,7 @@ async function verifyContract(){
 		form.set('contractaddress', APP_STATE.token.address);
 		form.set('sourceCode', source);
 		form.set('codeformat','solidity-single-file');
-		form.set('contractname', params.symbol); // без файла, одиночный
+		form.set('contractname', contractName); // одиночный файл
 		form.set('compilerversion','v0.8.24+commit.e11b9ed9');
 		form.set('optimizationUsed','1');
 		form.set('runs','200');

@@ -119,7 +119,15 @@ function secureClear(i){ const el=id(i); if(el) el.value=''; }
   id('log-clear')?.addEventListener('click', ()=>window.__clearLogs());
   id('log-export')?.addEventListener('click', ()=>window.__exportLogs());
 })();
-const SOURCE_TEMPLATE = (name, symbol, decimals, supply) => `// SPDX-License-Identifier: MIT\npragma solidity ^0.8.24;\ncontract ${symbol} {\nstring public name = '${name}';\nstring public symbol = '${symbol}';\nuint8 public decimals = ${decimals};\nuint256 public totalSupply;\nmapping(address=>uint256) public balanceOf;\nevent Transfer(address indexed from,address indexed to,uint256 value);\nconstructor(uint256 initialSupply){totalSupply=initialSupply;balanceOf[msg.sender]=initialSupply;emit Transfer(address(0),msg.sender,initialSupply);}\nfunction transfer(address to,uint256 value) external returns(bool){require(balanceOf[msg.sender]>=value,'bal');unchecked{balanceOf[msg.sender]-=value;balanceOf[to]+=value;}emit Transfer(msg.sender,to,value);return true;}\n}`;
+function sanitizeIdentifier(str){
+  // Оставляем буквы/цифры/подчёркивания, первая буква не цифра.
+  const cleaned = str.replace(/[^A-Za-z0-9_]/g,'');
+  return (/^[0-9]/.test(cleaned) ? '_'+cleaned : cleaned) || 'Token';
+}
+const SOURCE_TEMPLATE = (name, symbol, decimals, supply) => {
+  const contractId = sanitizeIdentifier(symbol);
+  return `// SPDX-License-Identifier: MIT\npragma solidity ^0.8.24;\ncontract ${contractId} {\nstring public name = '${name}';\nstring public symbol = '${symbol}';\nuint8 public decimals = ${decimals};\nuint256 public totalSupply;\nmapping(address=>uint256) public balanceOf;\nevent Transfer(address indexed from,address indexed to,uint256 value);\nconstructor(uint256 initialSupply){totalSupply=initialSupply;balanceOf[msg.sender]=initialSupply;emit Transfer(address(0),msg.sender,initialSupply);}\nfunction transfer(address to,uint256 value) external returns(bool){require(balanceOf[msg.sender]>=value,'bal');unchecked{balanceOf[msg.sender]-=value;balanceOf[to]+=value;}emit Transfer(msg.sender,to,value);return true;}\n}`;
+};
 
 let compilerWorker = null;
 function ensureCompiler(){
@@ -133,9 +141,19 @@ id('token-form')?.addEventListener('submit', async (e)=>{
   if(!APP_STATE.signer){ log('Сначала подключите кошелёк','error'); return; }
   const name = id('token-name').value.trim();
   const symbol = id('token-symbol').value.trim();
+  if(!/^[A-Za-z0-9_]{1,32}$/.test(symbol)){ log('Недопустимый символ токена (разрешены A-Za-z0-9_)','error'); return; }
   const decimals = parseInt(id('token-decimals').value,10) || 18;
   const supply = BigInt(id('token-supply').value || '0');
   if(!name || !symbol || supply<=0n){ log('Заполните имя/символ/выпуск','error'); return; }
+  // Проверка сети
+  if(![56,97].includes(APP_STATE.network||0)){
+    if(confirm('Текущая сеть не BSC Mainnet/Testnet. Попробовать переключить на BSC (0x38)?')){
+      try { await APP_STATE.provider.provider.request({ method:'wallet_switchEthereumChain', params:[{ chainId:'0x38'}] }); } catch(_){}
+    }
+    // Перечитать chainId
+    try { const net = await APP_STATE.provider.getNetwork(); APP_STATE.network = Number(net.chainId);}catch(_){ }
+    if(![56,97].includes(APP_STATE.network||0)){ log('Неверная сеть для деплоя','error'); return; }
+  }
   const source = SOURCE_TEMPLATE(name, symbol, decimals, supply.toString());
   const w = ensureCompiler();
   const reqId = 'cmp-'+Date.now();
@@ -146,14 +164,27 @@ id('token-form')?.addEventListener('submit', async (e)=>{
     w.postMessage({ id:reqId, cmd:'compile', payload:{ source, optimize:true, version:'v0.8.24+commit.e11b9ed9' } });
   }).catch(e=>{ log('Ошибка компиляции: '+e.message,'error'); return null; });
   if(!result) return;
-  if(status) status.textContent = 'Деплой...';
+  if(status) status.textContent = 'Оценка газа...';
   try {
     const factory = new ethers.ContractFactory(result.abi, result.bytecode, APP_STATE.signer);
-    const contract = await factory.deploy();
-    await contract.deploymentTransaction().wait();
-    APP_STATE.token = { address: contract.target, abi: result.abi, bytecode: result.bytecode, contract, params:{ name, symbol, decimals, supply: supply.toString() } };
+    // initialSupply учитывает decimals (приводим к минимальным единицам)
+    const initialSupply = supply * (10n ** BigInt(decimals));
+    // Оценка газа
+    let gasEstimate, feeData; 
+    try { gasEstimate = await factory.signer.estimateGas(factory.getDeployTransaction(initialSupply)); } catch(e){ gasEstimate = null; }
+    try { feeData = await factory.signer.provider.getFeeData(); } catch(e){ feeData = {}; }
+    const gasPrice = feeData.gasPrice || feeData.maxFeePerGas || 0n;
+    const costBNB = gasEstimate && gasPrice ? Number(gasEstimate * gasPrice) / 1e18 : null;
+    if(!confirm(`Подтвердите деплой:\nИмя: ${name}\nСимвол: ${symbol}\nDecimals: ${decimals}\nSupply (читаемый): ${supply}\nSupply (raw): ${initialSupply}\nОценка газа: ${gasEstimate || '—'}\nОжидаемая стоимость (BNB): ${costBNB? costBNB.toFixed(6):'—'}`)) { if(status) status.textContent='Отменено пользователем'; return; }
+    if(status) status.textContent = 'Деплой...';
+    const contract = await factory.deploy(initialSupply);
+    const deployTx = contract.deploymentTransaction();
+    log('Deploy tx: '+deployTx.hash);
+    const link = id('bscan-link'); if(link){ link.href = `https://bscscan.com/tx/${deployTx.hash}`; link.classList.remove('hidden'); link.textContent='Tx'; }
+    await deployTx.wait();
+    APP_STATE.token = { address: contract.target, abi: result.abi, bytecode: result.bytecode, contract, params:{ name, symbol, decimals, supply: initialSupply.toString() } };
     id('token-address').textContent = contract.target;
-    const link = id('bscan-link'); if(link){ link.href = `https://bscscan.com/address/${contract.target}`; link.classList.remove('hidden'); }
+    if(link){ link.href = `https://bscscan.com/address/${contract.target}`; link.classList.remove('hidden'); link.textContent='BscScan'; }
     id('deployed-info').classList.remove('hidden');
     id('btn-transfer').disabled = false;
     id('btn-approve').disabled = false;
