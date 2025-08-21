@@ -23,12 +23,15 @@ async function importTokenPassport(file){
   const contract = new ethers.Contract(data.address, data.abi, providerOrSigner);
   APP_STATE.token = { address: data.address, abi: data.abi, bytecode: data.bytecode||null, contract, params: data.params||null };
   if(APP_STATE.token.contract){
-    document.getElementById('token-address').textContent = data.address;
-    document.getElementById('bscan-link').href = `https://bscscan.com/address/${data.address}`;
-    document.getElementById('deployed-info').classList.remove('hidden');
-    document.getElementById('btn-verify').disabled = !APP_STATE.token.bytecode; // если есть bytecode можно верифицировать
-    document.getElementById('btn-save-passport').disabled = false;
-    document.getElementById('btn-save-project').disabled = false;
+  const addrEl = document.getElementById('token-address'); if(addrEl) addrEl.textContent = data.address;
+  const base = getExplorerBase(data.chainId || APP_STATE.network);
+  const link = document.getElementById('bscan-link'); if(link){ link.href = base? `${base}/address/${data.address}`:'#'; link.classList.remove('hidden'); }
+  document.getElementById('deployed-info')?.classList.remove('hidden');
+  document.getElementById('btn-transfer') && (document.getElementById('btn-transfer').disabled=false);
+  document.getElementById('btn-approve') && (document.getElementById('btn-approve').disabled=false);
+  document.getElementById('verify-btn-manage') && (document.getElementById('verify-btn-manage').disabled = !APP_STATE.token.bytecode);
+  document.getElementById('btn-save-passport') && (document.getElementById('btn-save-passport').disabled=false);
+  document.getElementById('btn-save-project') && (document.getElementById('btn-save-project').disabled=false);
   }
   if(window.__saveProject){ window.__saveProject(); }
   log('Импортирован паспорт токена '+data.address);

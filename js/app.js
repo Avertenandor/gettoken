@@ -46,7 +46,9 @@ id('alt-connect-mnemonic') && id('alt-connect-mnemonic').addEventListener('click
   }
   if (!confirm('Подтвердите, что вводите ВРЕМЕННУЮ сид-фразу. После подключения она будет очищена. Продолжить?')) return;
   try {
-    const provider = new ethers.JsonRpcProvider(APP_STATE.settings.rpcUrl || NETWORK_PRESETS[56].rpc);
+    const netId = APP_STATE.settings.networkId||56;
+    const rpc = APP_STATE.settings.rpcUrl || (NETWORK_PRESETS[netId] && NETWORK_PRESETS[netId].rpc) || NETWORK_PRESETS[56].rpc;
+    const provider = new ethers.JsonRpcProvider(rpc);
     const wallet = ethers.Wallet.fromPhrase(mnemonic).connect(provider);
     secureClear('alt-mnemonic');
     APP_STATE.provider = provider;
@@ -77,7 +79,9 @@ id('alt-connect-pk') && id('alt-connect-pk').addEventListener('click', async () 
   }
   if (!confirm('Подтвердите, что используете ВРЕМЕННЫЙ приватный ключ. После подключения он будет очищен. Продолжить?')) return;
   try {
-    const provider = new ethers.JsonRpcProvider(APP_STATE.settings.rpcUrl || NETWORK_PRESETS[56].rpc);
+    const netId = APP_STATE.settings.networkId||56;
+    const rpc = APP_STATE.settings.rpcUrl || (NETWORK_PRESETS[netId] && NETWORK_PRESETS[netId].rpc) || NETWORK_PRESETS[56].rpc;
+    const provider = new ethers.JsonRpcProvider(rpc);
     const wallet = new ethers.Wallet(pk, provider);
     secureClear('alt-private-key');
     APP_STATE.provider = provider;
@@ -195,8 +199,9 @@ id('token-form')?.addEventListener('submit', async (e)=>{
     try { gasEstimate = await factory.signer.estimateGas(factory.getDeployTransaction(initialSupply)); } catch(e){ gasEstimate = null; }
     try { feeData = await factory.signer.provider.getFeeData(); } catch(e){ feeData = {}; }
     const gasPrice = feeData.gasPrice || feeData.maxFeePerGas || 0n;
-    const costBNB = gasEstimate && gasPrice ? Number(gasEstimate * gasPrice) / 1e18 : null;
-    if(!confirm(`Подтвердите деплой:\nИмя: ${name}\nСимвол: ${symbol}\nDecimals: ${decimals}\nSupply (читаемый): ${supply}\nSupply (raw): ${initialSupply}\nОценка газа: ${gasEstimate || '—'}\nОжидаемая стоимость (BNB): ${costBNB? costBNB.toFixed(6):'—'}`)) { if(status) status.textContent='Отменено пользователем'; return; }
+  const costNative = gasEstimate && gasPrice ? Number(gasEstimate * gasPrice) / 1e18 : null;
+  const nativeSym = getNativeSymbol(APP_STATE.network);
+  if(!confirm(`Подтвердите деплой:\nИмя: ${name}\nСимвол: ${symbol}\nDecimals: ${decimals}\nSupply (читаемый): ${supply}\nSupply (raw): ${initialSupply}\nОценка газа: ${gasEstimate || '—'}\nОжидаемая стоимость (${nativeSym}): ${costNative? costNative.toFixed(6):'—'}`)) { if(status) status.textContent='Отменено пользователем'; return; }
     if(status) status.textContent = 'Деплой...';
     const contract = await factory.deploy(initialSupply);
     const deployTx = contract.deploymentTransaction();
@@ -288,6 +293,10 @@ id('clear-storage')?.addEventListener('click', ()=>{ localStorage.clear(); __toa
 
 // Инициализация полей настроек
 document.addEventListener('DOMContentLoaded', ()=>{ if(id('rpc-url')) id('rpc-url').value = APP_STATE.settings.rpcUrl; if(id('api-key')) id('api-key').value = APP_STATE.settings.apiKey; });
+// Download ABI / Bytecode
+function downloadText(filename, text){ const blob=new Blob([text],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click(); }
+id('download-abi')?.addEventListener('click', ()=>{ if(!APP_STATE.token || !APP_STATE.token.abi) return; downloadText('abi_'+APP_STATE.token.address+'.json', JSON.stringify(APP_STATE.token.abi, null, 2)); });
+id('download-bytecode')?.addEventListener('click', ()=>{ if(!APP_STATE.token || !APP_STATE.token.bytecode) return; downloadText('bytecode_'+APP_STATE.token.address+'.txt', APP_STATE.token.bytecode); });
 
 // Risky modes toggle
 document.addEventListener('DOMContentLoaded', ()=>{

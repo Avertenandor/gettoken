@@ -89,7 +89,7 @@
   }
   function persist(){
     try {
-      const data = { queue: state.queue, summary: state.summary, inited: state.inited, token: state.tokenAddress(), ts: Date.now() };
+      const data = { queue: state.queue, summary: state.summary, inited: state.inited, token: state.tokenAddress(), ts: Date.now(), concurrency: (id('batch-concurrency')&&id('batch-concurrency').value)||'1' };
       localStorage.setItem(LS_KEY, JSON.stringify(data));
     } catch(_){}
   }
@@ -102,6 +102,7 @@
       state.queue = saved.queue;
       state.summary = saved.summary;
       state.inited = !!saved.inited;
+      if(saved.concurrency && id('batch-concurrency')) id('batch-concurrency').value = saved.concurrency;
       rebuildTable();
       if(state.summary) updateSummary(state.summary);
       refreshButtons();
@@ -117,7 +118,7 @@
     state.queue = valid.map(a=>({ address:a }));
     rebuildTable();
     try {
-      await send('init', { address: state.tokenAddress(), abi: state.abi(), delay: parseInt(id('batch-delay').value,10)||2500, maxRetries: parseInt(id('batch-retries').value,10)||2, amount: id('batch-amount').value||'0' });
+  await send('init', { address: state.tokenAddress(), abi: state.abi(), delay: parseInt(id('batch-delay').value,10)||2500, maxRetries: parseInt(id('batch-retries').value,10)||2, amount: id('batch-amount').value||'0', concurrency: parseInt(id('batch-concurrency').value,10)||1 });
       await send('setQueue', { queue: state.queue });
       state.inited = true;
       refreshButtons();

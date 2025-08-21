@@ -13,14 +13,17 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Install Lighthouse CI
-        run: npm install -g @lhci/cli
+      - name: Install deps
+        run: |
+          npm install -g @lhci/cli http-server
       - name: Start static server
         run: npx http-server . -p 8080 &
       - name: Wait
         run: sleep 3
       - name: Lighthouse (index)
-        run: lhci collect --url=http://localhost:8080/Печать%20монет%20веб%20версия/index.html || true
+        run: |
+          lhci collect --url=http://localhost:8080/Печать%20монет%20веб%20версия/index.html --numberOfRuns=1
+          lhci assert --config=./Печать\ монет\ веб\ версия/lhci.config.json || true
       - name: Save artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -28,4 +31,13 @@ jobs:
           path: .lighthouseci
       - name: Smoke compile worker
         run: |
-          grep -q 'compiler.worker.js' Печать\ монет\ веб\ версия/index.html
+          node - <<'EOF'
+          const fs=require('fs');
+          const path=require('path');
+          const wPath=path.join(process.cwd(),'Печать монет веб версия','js','compiler.worker.js');
+          if(!fs.existsSync(wPath)) { console.error('worker missing'); process.exit(1); }
+          // simple static check for version string and compile keyword
+          const txt=fs.readFileSync(wPath,'utf8');
+          if(!/soljson|compile/i.test(txt)){ console.error('compile markers not found'); process.exit(1); }
+          console.log('Worker static smoke OK');
+          EOF

@@ -67,13 +67,14 @@ window.__loadProject = async function(id){
       const contract = new ethers.Contract(rec.address, rec.abi, providerOrSigner);
       APP_STATE.token = { address: rec.address, abi: rec.abi, bytecode: rec.bytecode, contract, params: rec.params||null };
       const addrEl = document.getElementById('token-address'); if(addrEl) addrEl.textContent = rec.address;
-      const link = document.getElementById('bscan-link'); if(link){ link.href = `https://bscscan.com/address/${rec.address}`; link.classList.remove('hidden'); }
+  const base = getExplorerBase(rec.chainId || APP_STATE.network);
+  const link = document.getElementById('bscan-link'); if(link){ link.href = base? `${base}/address/${rec.address}`:'#'; link.classList.remove('hidden'); }
       document.getElementById('deployed-info')?.classList.remove('hidden');
       document.getElementById('btn-transfer').disabled = false;
       document.getElementById('btn-approve').disabled = false;
       document.getElementById('btn-save-passport').disabled = false;
       document.getElementById('btn-save-project').disabled = false;
-      document.getElementById('verify-btn').disabled = false;
+  const vb=document.getElementById('verify-btn-manage'); if(vb) vb.disabled=false;
       resolve(rec);
     };
     req.onerror = ()=>reject(req.error);

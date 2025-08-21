@@ -9,6 +9,7 @@ let transferAmount = '0';
 let queue = [];
 let delay = 2500;
 let maxRetries = 2;
+let concurrency = 1;
 let startedAt = 0;
 let counters = { sent:0, ok:0, err:0 };
 
@@ -21,6 +22,7 @@ self.onmessage = async (e) => {
       delay = payload.delay || delay;
       maxRetries = payload.maxRetries || maxRetries;
       transferAmount = payload.amount || '0';
+      concurrency = Math.max(1, payload.concurrency || concurrency);
       self.postMessage({ id, ok: true });
     } else if (cmd === 'setQueue') {
       queue = payload.queue.map(a => ({ address: a.address, status: 'queued', attempts: 0 }));
@@ -44,37 +46,39 @@ self.onmessage = async (e) => {
 };
 
 async function processLoop(){
-  for (let i=0;i<queue.length;i++){
-    if(!running) break;
+  let index = 0;
+  const active = new Set();
+  async function launch(i){
+    if(!running) return;
     const item = queue[i];
-    if(item.status === 'success') continue;
+    if(!item || item.status==='success') return;
     while(paused && running) await sleep(200);
-    if(!running) break;
-    item.status = 'sending';
-    postProgress(i, item);
+    if(!running) return;
+    item.status='sending'; postProgress(i,item);
     const txResult = await requestMainTransfer(item.address, i, transferAmount);
     counters.sent++;
-    if (txResult.ok) {
-      item.status = 'success';
-      item.tx = txResult.txHash; counters.ok++;
-    } else {
+    if(txResult.ok){ item.status='success'; item.tx=txResult.txHash; counters.ok++; }
+    else {
       item.attempts++;
-      if (item.attempts <= maxRetries) {
-        item.status = 'retry';
-        postProgress(i, item);
-        await sleep(delay);
-        i--; // повтор текущего индекса
-        continue;
-      } else {
-        item.status = 'error';
-        item.error = txResult.error; counters.err++;
-      }
+      if(item.attempts <= maxRetries){ item.status='retry'; postProgress(i,item); await sleep(delay); active.delete(i); return launch(i); }
+      item.status='error'; item.error=txResult.error; counters.err++;
     }
-    postProgress(i, item);
+    postProgress(i,item);
     await sleep(delay);
+    active.delete(i);
+    if(running){
+      while(active.size < concurrency && index < queue.length){
+        const next = index++;
+        if(queue[next] && queue[next].status!=='success') { active.add(next); launch(next); }
+      }
+      if(active.size===0){ running=false; self.postMessage({ id:'batch-finished', ok:true, summary:summarize() }); }
+    }
   }
-  running = false;
-  self.postMessage({ id: 'batch-finished', ok: true, summary: summarize() });
+  // initial fill
+  while(active.size < concurrency && index < queue.length){
+    const next = index++;
+    active.add(next); launch(next);
+  }
 }
 
 function summarize(){

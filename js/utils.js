@@ -52,6 +52,25 @@ function updateNetStatus(){
 
 function shortAddress(a){return a? a.slice(0,6)+'...'+a.slice(-4):'';}
 
+function getExplorerBase(chainId){
+	switch(Number(chainId)){
+		case 1: return 'https://etherscan.io';
+		case 11155111: return 'https://sepolia.etherscan.io';
+		case 56: return 'https://bscscan.com';
+		case 97: return 'https://testnet.bscscan.com';
+		default: return '';
+	}
+}
+function getNativeSymbol(chainId){
+	switch(Number(chainId)){
+		case 1: return 'ETH';
+		case 11155111: return 'ETH';
+		case 56: return 'BNB';
+		case 97: return 'tBNB';
+		default: return 'ETH';
+	}
+}
+
 async function connectWallet(){
 	try {
 		if(typeof window === 'undefined') throw new Error('Window недоступен');
@@ -152,3 +171,5 @@ window.saveSettings = saveSettings;
 window.fetchTokenBalance = fetchTokenBalance;
 window.updateWalletBadge = updateWalletBadge;
 window.updateNetStatus = updateNetStatus;
+window.getExplorerBase = getExplorerBase;
+window.getNativeSymbol = getNativeSymbol;
