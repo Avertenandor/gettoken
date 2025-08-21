@@ -1,6 +1,5 @@
 // --- Новый раздел подключения кошелька ---
-function id(i){return document.getElementById(i);}
-function log(msg, type='info'){console[type==='error'?'error':'log'](msg);}
+// (id, log предоставлены в utils.js)
 
 function validateMnemonic(mnemonic) {
   const words = mnemonic.trim().split(/\s+/);

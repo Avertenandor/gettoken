@@ -1,3 +1,2 @@
-function log(msg, type='info'){console[type==='error'?'error':'log'](msg);}
-function id(i){return document.getElementById(i);}
+// log, id из utils.js
 // ...existing code...
