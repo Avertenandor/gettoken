@@ -12,6 +12,7 @@
     tokenAddress: () => (APP_STATE.token && APP_STATE.token.address) || null,
     abi: () => (APP_STATE.token && APP_STATE.token.abi) || []
   };
+  const LS_KEY = 'batchProgressV1';
 
   function ensureWorker(){
     if(state.worker) return state.worker;
@@ -25,12 +26,14 @@
     if(id === 'progress') {
       if(typeof index === 'number') updateRow(index, item);
       if(summary) updateSummary(summary);
+  persist();
       return;
     }
     if(id === 'batch-finished') {
       updateSummary(summary);
       state.running = false; state.paused = false;
       refreshButtons();
+  persist();
       return;
     }
     if(summary) updateSummary(summary);
@@ -59,7 +62,7 @@
     tb.innerHTML = '';
     state.queue.forEach((q,i)=>{
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${i+1}</td><td class="mono">${q.address}</td><td data-col="status">queued</td><td data-col="tx"></td><td data-col="attempts">0</td>`;
+  tr.innerHTML = `<td>${i+1}</td><td class="mono">${q.address}</td><td data-col="status">${q.status||'queued'}</td><td data-col="tx">${q.tx? shortTx(q.tx):''}</td><td data-col="attempts">${q.attempts||0}</td>`;
       tb.appendChild(tr);
     });
   }
@@ -84,6 +87,26 @@
     id('batch-cancel').disabled = !state.running;
     id('batch-export').disabled = !state.summary;
   }
+  function persist(){
+    try {
+      const data = { queue: state.queue, summary: state.summary, inited: state.inited, token: state.tokenAddress(), ts: Date.now() };
+      localStorage.setItem(LS_KEY, JSON.stringify(data));
+    } catch(_){}
+  }
+  function restore(){
+    try {
+      const raw = localStorage.getItem(LS_KEY); if(!raw) return;
+      const saved = JSON.parse(raw);
+      if(!saved.queue || !Array.isArray(saved.queue)) return;
+      if(saved.token && APP_STATE.token && saved.token !== APP_STATE.token.address) return;
+      state.queue = saved.queue;
+      state.summary = saved.summary;
+      state.inited = !!saved.inited;
+      rebuildTable();
+      if(state.summary) updateSummary(state.summary);
+      refreshButtons();
+    } catch(_){}
+  }
 
   // Actions
   id('batch-init')?.addEventListener('click', async ()=>{
@@ -99,6 +122,7 @@
       state.inited = true;
       refreshButtons();
       log('Batch инициализирован');
+  persist();
     } catch(e){ log('Ошибка init: '+e,'error'); }
   });
 
@@ -110,6 +134,12 @@
   id('batch-resume')?.addEventListener('click', async ()=>{ try { await send('resume', {}); state.paused=false; refreshButtons(); }catch(e){ log('Resume error: '+e,'error'); } });
   id('batch-cancel')?.addEventListener('click', async ()=>{ try { await send('cancel', {}); state.running=false; state.paused=false; refreshButtons(); }catch(e){ log('Cancel error: '+e,'error'); } });
   id('batch-export')?.addEventListener('click', ()=>{ if(window.__exportBatchJson) window.__exportBatchJson(); });
+  window.__exportBatchJson = function(){
+    const blob = new Blob([JSON.stringify({ queue: state.queue, summary: state.summary }, null, 2)], { type:'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='batch_results.json'; a.click();
+  };
+
+  restore();
 
   // Перехват transfer запросов от worker
   // Формат сообщения: { id:'transfer-..', cmd:'doTransfer', payload:{ address, amount }}
