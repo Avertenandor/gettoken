@@ -1,5 +1,5 @@
 // log, id из utils.js
-// Каркас верификации контракта на BscScan (или аналогичных) через API
+// Верификация контракта через Etherscan API V2 (multichain: chainid)
 
 let __verifyCancel = false;
 async function verifyContract(){
@@ -11,29 +11,31 @@ async function verifyContract(){
 	try {
 		const { params } = APP_STATE.token;
 		const contractName = (params?.symbol)||'Token';
-		// Минимальный source должен совпасть с деплоем; берём шаблон из app.js (повторяем формирование)
-		const source = `// SPDX-License-Identifier: MIT\npragma solidity ^0.8.24;\ncontract ${params.symbol} {\nstring public name = '${params.name}';\nstring public symbol = '${params.symbol}';\nuint8 public decimals = ${params.decimals};\nuint256 public totalSupply;\nmapping(address=>uint256) public balanceOf;\nevent Transfer(address indexed from,address indexed to,uint256 value);\nconstructor(uint256 initialSupply){totalSupply=initialSupply;balanceOf[msg.sender]=initialSupply;emit Transfer(address(0),msg.sender,initialSupply);}\nfunction transfer(address to,uint256 value) external returns(bool){require(balanceOf[msg.sender]>=value,'bal');unchecked{balanceOf[msg.sender]-=value;balanceOf[to]+=value;}emit Transfer(msg.sender,to,value);return true;}\n}`;
+		const chainid = APP_STATE.network;
+		const source = params.source; // сохранённый полный исходник
+		if(!source){ throw new Error('Нет исходника для верификации'); }
 		const form = new URLSearchParams();
 		form.set('apikey', APP_STATE.settings.apiKey);
+		form.set('chainid', String(chainid));
 		form.set('module','contract');
 		form.set('action','verifysourcecode');
 		form.set('contractaddress', APP_STATE.token.address);
 		form.set('sourceCode', source);
 		form.set('codeformat','solidity-single-file');
-		form.set('contractname', contractName); // одиночный файл
+		form.set('contractname', contractName);
 		form.set('compilerversion','v0.8.24+commit.e11b9ed9');
 		form.set('optimizationUsed','1');
 		form.set('runs','200');
-		form.set('licenseType','3'); // MIT
-		form.set('constructorArguements', encodeConstructorArgs(params));
-		const apiBase = APP_STATE.network===97? 'https://api-testnet.bscscan.com/api':'https://api.bscscan.com/api';
+		form.set('licenseType','3');
+		form.set('constructorArguments', encodeConstructorArgs(params));
+		const apiBase = 'https://api.etherscan.io/v2/api';
 		const resp = await fetch(apiBase, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:form.toString() });
 		const data = await resp.json();
-		if(data.status!=='1'){ throw new Error(data.result||'submit error'); }
+		if(data.status!=='1'){ throw new Error(data.result||data.message||'submit error'); }
 		const guid = data.result;
 		statusEl.textContent='GUID получен, polling...';
 		showVerifyProgress(true);
-		const result = await pollVerify(apiBase, guid, 60); // максимум 60 попыток ~2-3 мин
+		const result = await pollVerify(apiBase, guid, chainid, 60);
 		statusEl.textContent = result.ok? 'Контракт верифицирован':'Статус: '+result.status;
 		showVerifyProgress(false);
 		log('Результат верификации: '+JSON.stringify(result));
@@ -51,16 +53,16 @@ function encodeConstructorArgs(p){
 	return hex.padStart(64,'0');
 }
 
-async function pollVerify(apiBase, guid, maxAttempts){
+async function pollVerify(apiBase, guid, chainid, maxAttempts){
 	for(let i=0;i<maxAttempts;i++){
 		if(__verifyCancel) return { ok:false, status:'cancelled' };
-		await new Promise(r=>setTimeout(r, 3000));
-		const url = `${apiBase}?module=contract&action=checkverifystatus&guid=${encodeURIComponent(guid)}`;
-		const r = await fetch(url); const d = await r.json();
-		updateVerifyProgress((i+1)/maxAttempts, d.result||'');
+		await new Promise(r=>setTimeout(r, 4000));
+		const url = `${apiBase}?module=contract&action=checkverifystatus&guid=${encodeURIComponent(guid)}&chainid=${chainid}`;
+		const r = await fetch(url); let d; try { d = await r.json(); } catch(_) { d = { status:'0', result:'json parse error'}; }
+		updateVerifyProgress((i+1)/maxAttempts, d.result||d.message||'');
 		if(d.status==='1') return { ok:true, status:d.result };
-		if(d.status==='0' && /already verified/i.test(d.result||'')) return { ok:true, status:'already verified' };
-		if(d.status==='0' && !/Pending in queue|In progress/i.test(d.result||'')) return { ok:false, status:d.result };
+		if(d.status==='0' && /already verified/i.test((d.result||'')+(d.message||''))) return { ok:true, status:'already verified' };
+		if(d.status==='0' && !/Pending|In progress|Queue/i.test((d.result||'')+(d.message||''))) return { ok:false, status:d.result||d.message };
 	}
 	return { ok:false, status:'timeout' };
 }
