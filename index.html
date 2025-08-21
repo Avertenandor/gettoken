@@ -13,15 +13,15 @@
     .connect-options .hint { font-size: 13px; opacity: 0.7; margin-top: 4px; }
     .connect-options textarea, .connect-options input { margin-top: 8px; }
   </style>
-  <link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16.png" />
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32.png" />
-  <link rel="icon" type="image/png" sizes="192x192" href="/favicons/favicon-192.png" />
-  <link rel="icon" type="image/png" sizes="512x512" href="/favicons/favicon-512.png" />
-  <link rel="icon" type="image/svg+xml" href="/favicons/favicon.svg" />
-  <link rel="apple-touch-icon" sizes="180x180" href="/favicons/favicon-192.png" />
-  <link rel="manifest" href="/site.webmanifest" />
+  <link rel="icon" type="image/png" sizes="16x16" href="./favicons/favicon-16.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="./favicons/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="./favicons/favicon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="./favicons/favicon-512.png" />
+  <link rel="icon" type="image/svg+xml" href="./favicons/favicon.svg" />
+  <link rel="apple-touch-icon" sizes="180x180" href="./favicons/favicon-192.png" />
+  <link rel="manifest" href="./site.webmanifest" />
   <meta name="theme-color" content="#2563eb" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.bscscan.com https://api-testnet.bscscan.com https://bsc-dataseed.binance.org https://data-seed-prebsc-1-s1.binance.org:8545; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests"> 
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://binaries.soliditylang.org; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.bscscan.com https://api-testnet.bscscan.com https://bsc-dataseed.binance.org https://data-seed-prebsc-1-s1.binance.org:8545 https://binaries.soliditylang.org; font-src 'self'; form-action 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests"> 
   <!-- Ethers.js (UMD) для работы с кошельком -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js" integrity="sha384-3R5I9P2Y5xR0lU1YQ7i1eX0t6fjJm6C6LkQtcVfMfm8p4A4J6+1mAvGbyV6H8d4Y" crossorigin="anonymous"></script>
 </head>
@@ -50,17 +50,18 @@
             <span id="network"></span>
             <div class="hint">Рекомендуется для большинства пользователей. Безопасно, не требует передачи секретов.</div>
           </li>
-          <li><b>Сид-фраза (12 или 24 слова)</b><br>
-            <textarea id="alt-mnemonic" placeholder="Введите сид-фразу (12 или 24 слова)" style="width:100%;min-height:60px;" aria-label="Сид фраза"></textarea>
-            <button type="button" id="alt-connect-mnemonic">Подключить по сид-фразе</button>
-            <div class="hint">Вводите ТОЛЬКО временную сид-фразу. После подключения она будет очищена. Проверяется валидность: 12 или 24 слова, только латиница.</div>
-          </li>
-          <li><b>Приватный ключ</b><br>
-            <input id="alt-private-key" placeholder="Введите приватный ключ 0x..." style="width:100%;" aria-label="Приватный ключ" type="password" />
-            <button type="button" id="toggle-pk-visibility" style="font-size:11px;">Показать</button>
-            <button type="button" id="alt-connect-pk">Подключить по приватному ключу</button>
-            <div class="hint">Вводите ТОЛЬКО временный приватный ключ. После подключения он будет очищен. Проверяется валидность: 0x + 64 символа.</div>
-          </li>
+          <li><details><summary><b>Сид / Приватный ключ (НЕ РЕКОМЕНДУЕТСЯ)</b></summary>
+            <div style="margin-top:8px;">
+              <textarea id="alt-mnemonic" placeholder="Сид-фраза 12/24 слов" style="width:100%;min-height:60px;" aria-label="Сид фраза"></textarea>
+              <button type="button" id="alt-connect-mnemonic">Подключить по сид-фразе</button>
+              <div class="hint">Только временная сид-фраза. Очищается после подключения.</div>
+              <hr style="margin:12px 0;opacity:0.3;">
+              <input id="alt-private-key" placeholder="Приватный ключ 0x..." style="width:100%;" aria-label="Приватный ключ" type="password" />
+              <button type="button" id="toggle-pk-visibility" style="font-size:11px;">Показать</button>
+              <button type="button" id="alt-connect-pk">Подключить по приватному ключу</button>
+              <div class="hint">Формат: 0x + 64 hex. Используйте временный ключ.</div>
+            </div>
+          </details></li>
           <li><b>Read-only</b><br>
             <button type="button" id="read-only-btn">Только просмотр (без подключения)</button>
             <div class="hint">Можно просматривать токен и баланс без подключения кошелька.</div>
@@ -78,8 +79,8 @@
           <input id="token-decimals" type="number" min="0" max="18" value="18" placeholder="Decimals" />
           <input id="token-supply" type="number" min="1" value="1000000" placeholder="Начальный выпуск" />
         </div>
-        <button type="submit">Создать токен</button>
-        <button type="button" id="verify-btn">Верифицировать</button>
+  <button type="submit">Создать токен</button>
+  <!-- Удалён дублирующий verify-btn (основной в панели токена) -->
       </form>
       <div id="deploy-status" class="muted" style="margin-top:8px;" role="status" aria-live="polite"></div>
     </section>
@@ -107,6 +108,7 @@
           <button id="btn-list-projects" type="button">Список проектов</button>
           <button id="btn-load-project" type="button">Загрузить (ввести адрес)</button>
           <button id="verify-btn" type="button" disabled>Верифицировать</button>
+          <button id="verify-cancel-btn" type="button" disabled>Отмена</button>
         </div>
         <div id="verify-status" class="muted" style="margin-top:6px;"></div>
         <div id="verify-progress-container" class="hidden" style="margin-top:4px;">
@@ -138,8 +140,9 @@
       <h2>Настройки</h2>
       <div class="section">
         <label>RPC URL: <input id="rpc-url" type="text" /></label>
-        <label>API Key: <input id="api-key" type="text" /></label>
-        <button type="button" id="save-settings">Сохранить</button>
+  <label>API Key: <input id="api-key" type="text" /></label>
+  <button type="button" id="save-settings">Сохранить</button>
+  <button type="button" id="clear-storage">Очистить локальные данные</button>
         <div id="settings-status" class="muted" style="margin-top:8px;" role="status" aria-live="polite"></div>
       </div>
     </section>
@@ -182,13 +185,20 @@
   <footer>
     <span>© 2025 Печать монет. Все права защищены.</span>
   </footer>
-  <script src="./js/utils.js"></script>
-  <script src="./js/projects.js"></script>
-  <script src="./js/passport.js"></script>
-  <script src="./js/batch_export.js"></script>
-  <script src="./js/toast.js"></script>
-  <script src="./js/batch.js"></script>
-  <script src="./js/app.js"></script>
-  <script src="./js/verifier.js"></script>
+  <script defer src="./js/utils.js"></script>
+  <script defer src="./js/projects.js"></script>
+  <script defer src="./js/passport.js"></script>
+  <script defer src="./js/batch_export.js"></script>
+  <script defer src="./js/toast.js"></script>
+  <script defer src="./js/batch.js"></script>
+  <script defer src="./js/app.js"></script>
+  <script defer src="./js/verifier.js"></script>
+  <script defer>
+    if('serviceWorker' in navigator){
+      window.addEventListener('load', ()=>{
+        navigator.serviceWorker.register('./sw.js').catch(e=>console.error('SW register fail', e));
+      });
+    }
+  </script>
 </body>
 </html>

@@ -1,10 +1,13 @@
 // log, id из utils.js
 // Каркас верификации контракта на BscScan (или аналогичных) через API
 
+let __verifyCancel = false;
 async function verifyContract(){
 	if(!APP_STATE.token || !APP_STATE.token.address){ log('Нет токена для верификации','error'); return; }
 	if(!APP_STATE.settings.apiKey){ log('Нет API ключа','error'); id('verify-status').textContent='Укажите API ключ в настройках'; return; }
+	__verifyCancel = false;
 	const statusEl = id('verify-status'); if(statusEl) statusEl.textContent='Отправка на верификацию...';
+	const cancelBtn = document.getElementById('verify-cancel-btn'); if(cancelBtn) cancelBtn.disabled=false;
 	try {
 		const { params } = APP_STATE.token;
 		const contractName = (params?.symbol)||'Token';
@@ -38,6 +41,7 @@ async function verifyContract(){
 		log('Ошибка верификации: '+e.message,'error');
 		if(statusEl) statusEl.textContent='Ошибка верификации: '+e.message;
 	}
+	const cancelBtn2 = document.getElementById('verify-cancel-btn'); if(cancelBtn2) cancelBtn2.disabled=true;
 }
 
 function encodeConstructorArgs(p){
@@ -49,6 +53,7 @@ function encodeConstructorArgs(p){
 
 async function pollVerify(apiBase, guid, maxAttempts){
 	for(let i=0;i<maxAttempts;i++){
+		if(__verifyCancel) return { ok:false, status:'cancelled' };
 		await new Promise(r=>setTimeout(r, 3000));
 		const url = `${apiBase}?module=contract&action=checkverifystatus&guid=${encodeURIComponent(guid)}`;
 		const r = await fetch(url); const d = await r.json();
@@ -72,4 +77,5 @@ function updateVerifyProgress(fraction, text){
 }
 
 document.getElementById('verify-btn')?.addEventListener('click', verifyContract);
+document.getElementById('verify-cancel-btn')?.addEventListener('click', ()=>{ __verifyCancel = true; const b=document.getElementById('verify-cancel-btn'); if(b) b.disabled=true; });
 window.__verifyContract = verifyContract;
