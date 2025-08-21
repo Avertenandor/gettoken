@@ -69,6 +69,15 @@
         </ol>
       </div>
       <div id="connect-status" class="muted" style="margin-top:8px;" role="status" aria-live="polite"></div>
+      <div id="wallet-info" class="section" style="margin-top:12px;">
+        <h3 style="margin-top:0;">Кошелёк</h3>
+        <div><strong>Адрес:</strong> <span id="wallet-full-address" class="mono"></span></div>
+        <div style="margin-top:6px;font-size:14px;display:flex;flex-wrap:wrap;gap:16px;">
+          <span id="balance-native" class="mono" title="Нативный баланс"></span>
+          <span id="balance-usdt" class="mono" title="USDT"></span>
+          <span id="balance-plex" class="mono" title="PLEX"></span>
+        </div>
+      </div>
     </section>
     <section id="view-deploy" class="view">
       <h2>Создание токена</h2>
@@ -154,6 +163,8 @@
         </label>
         <label>RPC URL: <input id="rpc-url" type="text" /></label>
   <label>API Key (Etherscan V2): <input id="api-key" type="text" /></label>
+  <label>USDT Address: <input id="usdt-address" type="text" placeholder="0x..." /></label>
+  <label>PLEX Address: <input id="plex-address" type="text" placeholder="0x..." /></label>
   <label style="display:block;margin-top:6px;"><input type="checkbox" id="enable-risky-modes" /> Разрешить сид / приватный ключ (я понимаю риски)</label>
   <button type="button" id="save-settings">Сохранить</button>
   <button type="button" id="clear-storage">Очистить локальные данные</button>

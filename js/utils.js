@@ -19,7 +19,9 @@ const APP_STATE = {
 	settings: {
 		rpcUrl: localStorage.getItem('rpcUrl')||'',
 		apiKey: localStorage.getItem('apiKey')||'',
-		networkId: parseInt(localStorage.getItem('networkId')||'56',10) // default BSC
+		networkId: parseInt(localStorage.getItem('networkId')||'56',10), // default BSC
+		usdtAddress: localStorage.getItem('usdtAddress')||'',
+		plexAddress: localStorage.getItem('plexAddress')||''
 	},
 	token: { address:null, abi:null, bytecode:null, contract:null, params:null },
 	batch: { list:[], running:false },
@@ -116,6 +118,7 @@ async function connectWallet(){
 		APP_STATE.network = chainId;
 		updateWalletBadge();
 		updateNetStatus();
+		if(window.__refreshWalletBalances) window.__refreshWalletBalances();
 		const st = id('connect-status'); if(st) st.textContent = 'Кошелёк подключён';
 		log('Кошелёк подключён: '+accounts[0]);
 	} catch(e){
@@ -132,6 +135,8 @@ function disconnectWallet(){
 	APP_STATE.network = null;
 	updateWalletBadge();
 	updateNetStatus();
+	const fullEl = id('wallet-full-address'); if(fullEl) fullEl.textContent='';
+	['balance-native','balance-usdt','balance-plex'].forEach(i=>{ const el=id(i); if(el) el.textContent=''; });
 	const st = id('connect-status'); if(st) st.textContent = 'Отключено';
 }
 
@@ -139,6 +144,8 @@ function saveSettings(){
 	if(APP_STATE.settings.rpcUrl) localStorage.setItem('rpcUrl', APP_STATE.settings.rpcUrl);
 	if(APP_STATE.settings.apiKey) localStorage.setItem('apiKey', APP_STATE.settings.apiKey);
 	if(APP_STATE.settings.networkId!=null) localStorage.setItem('networkId', String(APP_STATE.settings.networkId));
+	if(APP_STATE.settings.usdtAddress) localStorage.setItem('usdtAddress', APP_STATE.settings.usdtAddress);
+	if(APP_STATE.settings.plexAddress) localStorage.setItem('plexAddress', APP_STATE.settings.plexAddress);
 }
 
 async function fetchTokenBalance(){

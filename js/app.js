@@ -31,6 +31,37 @@ function showSecurityLock(){
   }
 }
 
+// ---- Balances (native + ERC20 tokens) ----
+async function refreshWalletBalances(){
+  try {
+    const addr = APP_STATE.address; if(!addr) return;
+    const fullEl = id('wallet-full-address'); if(fullEl) fullEl.textContent = addr;
+    if(APP_STATE.provider && APP_STATE.provider.getBalance){
+      const bal = await APP_STATE.provider.getBalance(addr);
+      const nativeSym = getNativeSymbol(APP_STATE.network||APP_STATE.settings.networkId);
+      const el = id('balance-native'); if(el) el.textContent = `${nativeSym}: ${(Number(bal)/1e18).toFixed(5)}`;
+    }
+    // ERC20 balances (USDT / PLEX) если адреса заданы в настройках
+    const erc20List = [
+      { key:'usdtAddress', out:'balance-usdt', label:'USDT', decimalsGuess:6 },
+      { key:'plexAddress', out:'balance-plex', label:'PLEX', decimalsGuess:18 }
+    ];
+    for(const t of erc20List){
+      const tokenAddr = APP_STATE.settings[t.key]; if(!tokenAddr || !/^0x[0-9a-fA-F]{40}$/.test(tokenAddr)) { const out=id(t.out); if(out) out.textContent=''; continue; }
+      try {
+        const abiMini=["function balanceOf(address) view returns (uint256)","function decimals() view returns(uint8)"]; 
+        const contract = new ethers.Contract(tokenAddr, abiMini, APP_STATE.provider||APP_STATE.signer);
+        let dec;
+        try { dec = await contract.decimals(); } catch(_){ dec = t.decimalsGuess; }
+        const raw = await contract.balanceOf(addr);
+        const val = Number(raw)/(10**dec);
+        const out = id(t.out); if(out) out.textContent = `${t.label}: ${val.toFixed(4)}`;
+      } catch(e){ const out=id(t.out); if(out) out.textContent = `${t.label}: ?`; }
+    }
+  } catch(e){ /* ignore */ }
+}
+window.__refreshWalletBalances = refreshWalletBalances;
+
 // Подключение через расширение
 id('btn-connect') && id('btn-connect').addEventListener('click', connectWallet);
 
@@ -296,11 +327,24 @@ id('btn-load-project')?.addEventListener('click', async ()=>{ const addr = promp
 id('btn-disconnect')?.addEventListener('click', ()=>{ disconnectWallet(); secureClear('alt-mnemonic'); secureClear('alt-private-key'); __toast && __toast('Отключено','info',2000); });
 
 // Settings save
-id('save-settings')?.addEventListener('click', ()=>{ APP_STATE.settings.rpcUrl = id('rpc-url').value.trim(); APP_STATE.settings.apiKey = id('api-key').value.trim(); saveSettings(); const s=id('settings-status'); if(s) s.textContent='Сохранено'; });
+id('save-settings')?.addEventListener('click', ()=>{ 
+  APP_STATE.settings.rpcUrl = id('rpc-url').value.trim(); 
+  APP_STATE.settings.apiKey = id('api-key').value.trim(); 
+  if(id('usdt-address')) APP_STATE.settings.usdtAddress = id('usdt-address').value.trim();
+  if(id('plex-address')) APP_STATE.settings.plexAddress = id('plex-address').value.trim();
+  saveSettings(); 
+  const s=id('settings-status'); if(s) s.textContent='Сохранено'; 
+  if(window.__refreshWalletBalances) window.__refreshWalletBalances();
+});
 id('clear-storage')?.addEventListener('click', ()=>{ localStorage.clear(); __toast && __toast('Локальные данные очищены','info',3000); const s=id('settings-status'); if(s) s.textContent='Очищено'; });
 
 // Инициализация полей настроек
-document.addEventListener('DOMContentLoaded', ()=>{ if(id('rpc-url')) id('rpc-url').value = APP_STATE.settings.rpcUrl; if(id('api-key')) id('api-key').value = APP_STATE.settings.apiKey; });
+document.addEventListener('DOMContentLoaded', ()=>{ 
+  if(id('rpc-url')) id('rpc-url').value = APP_STATE.settings.rpcUrl; 
+  if(id('api-key')) id('api-key').value = APP_STATE.settings.apiKey; 
+  if(id('usdt-address')) id('usdt-address').value = APP_STATE.settings.usdtAddress; 
+  if(id('plex-address')) id('plex-address').value = APP_STATE.settings.plexAddress; 
+});
 // Download ABI / Bytecode (single canonical buttons)
 function downloadText(filename, text, mime='application/json'){ const blob=new Blob([text],{type:mime}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click(); }
 function enableArtifactButtons(){
