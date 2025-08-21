@@ -32,8 +32,7 @@ async function importTokenPassport(file){
     const vBtn = document.getElementById('verify-btn-manage'); if(vBtn) vBtn.disabled = !APP_STATE.token.bytecode;
     const spBtn = document.getElementById('btn-save-passport'); if(spBtn) spBtn.disabled=false;
     const prBtn = document.getElementById('btn-save-project'); if(prBtn) prBtn.disabled=false;
-    const dlAbi = document.getElementById('download-abi-btn'); if(dlAbi) dlAbi.disabled = !APP_STATE.token.abi;
-    const dlByte = document.getElementById('download-bytecode-btn'); if(dlByte) dlByte.disabled = !APP_STATE.token.bytecode;
+  if(typeof enableArtifactButtons==='function') enableArtifactButtons();
   }
   if(window.__saveProject){ window.__saveProject(); }
   log('Импортирован паспорт токена '+data.address);

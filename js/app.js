@@ -228,14 +228,15 @@ id('token-form')?.addEventListener('submit', async (e)=>{
     id('verify-btn-manage').disabled = false;
     APP_STATE.token.params.source = source; // сохраняем исходник
     // Кнопки watchAsset / copy если есть элементы в DOM
-    const watchBtn = id('watch-asset-btn');
+  const watchBtn = id('watch-asset-btn');
     if(watchBtn){ watchBtn.disabled = false; watchBtn.onclick = async ()=>{
       if(!window.ethereum) return;
       try { await window.ethereum.request({ method:'wallet_watchAsset', params:{ type:'ERC20', options:{ address: contract.target, symbol, decimals } } }); }
       catch(e){ log('watchAsset error: '+e.message,'error'); }
     }; }
     const copyBtn = id('copy-address-btn'); if(copyBtn){ copyBtn.disabled=false; copyBtn.onclick=()=>{ navigator.clipboard.writeText(contract.target).then(()=>{ __toast && __toast('Адрес скопирован','info',2000); }); }; }
-    if(status) status.textContent = 'Токен создан';
+  if(typeof enableArtifactButtons==='function') enableArtifactButtons();
+  if(status) status.textContent = 'Токен создан';
     __toast && __toast('Токен создан','info',4000);
     refreshBalance();
   } catch(e){
@@ -293,10 +294,15 @@ id('clear-storage')?.addEventListener('click', ()=>{ localStorage.clear(); __toa
 
 // Инициализация полей настроек
 document.addEventListener('DOMContentLoaded', ()=>{ if(id('rpc-url')) id('rpc-url').value = APP_STATE.settings.rpcUrl; if(id('api-key')) id('api-key').value = APP_STATE.settings.apiKey; });
-// Download ABI / Bytecode
-function downloadText(filename, text){ const blob=new Blob([text],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click(); }
-id('download-abi')?.addEventListener('click', ()=>{ if(!APP_STATE.token || !APP_STATE.token.abi) return; downloadText('abi_'+APP_STATE.token.address+'.json', JSON.stringify(APP_STATE.token.abi, null, 2)); });
-id('download-bytecode')?.addEventListener('click', ()=>{ if(!APP_STATE.token || !APP_STATE.token.bytecode) return; downloadText('bytecode_'+APP_STATE.token.address+'.txt', APP_STATE.token.bytecode); });
+// Download ABI / Bytecode (single canonical buttons)
+function downloadText(filename, text, mime='application/json'){ const blob=new Blob([text],{type:mime}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click(); }
+function enableArtifactButtons(){
+  const abiBtn = id('download-abi-btn');
+  if(abiBtn){ abiBtn.disabled = !(APP_STATE.token && APP_STATE.token.abi); abiBtn.onclick = ()=>{ if(!APP_STATE.token?.abi) return; downloadText('abi_'+APP_STATE.token.address+'.json', JSON.stringify(APP_STATE.token.abi,null,2)); }; }
+  const byteBtn = id('download-bytecode-btn');
+  if(byteBtn){ byteBtn.disabled = !(APP_STATE.token && APP_STATE.token.bytecode); byteBtn.onclick = ()=>{ if(!APP_STATE.token?.bytecode) return; downloadText('bytecode_'+APP_STATE.token.address+'.txt', APP_STATE.token.bytecode, 'text/plain'); }; }
+}
+document.addEventListener('DOMContentLoaded', enableArtifactButtons);
 
 // Risky modes toggle
 document.addEventListener('DOMContentLoaded', ()=>{
