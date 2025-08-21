@@ -177,9 +177,10 @@ id('import-passport-file')?.addEventListener('change', (e)=>{ const f=e.target.f
 // Project save/list
 id('btn-save-project')?.addEventListener('click', ()=>{ window.__saveProject && window.__saveProject(); });
 id('btn-list-projects')?.addEventListener('click', async ()=>{ if(!window.__listProjects) return; const list = await window.__listProjects(); const box=id('projects-list'); if(box) box.textContent = list.map(p=>p.id).join(', ')||'Нет проектов'; });
+id('btn-load-project')?.addEventListener('click', async ()=>{ const addr = prompt('Введите адрес контракта'); if(!addr) return; try { await window.__loadProject(addr); refreshBalance(); __toast && __toast('Проект загружен','info',3000); } catch(e){ log('Ошибка загрузки: '+e,'error'); } });
 
 // Disconnect
-id('btn-disconnect')?.addEventListener('click', ()=>{ disconnectWallet(); });
+id('btn-disconnect')?.addEventListener('click', ()=>{ disconnectWallet(); secureClear('alt-mnemonic'); secureClear('alt-private-key'); __toast && __toast('Отключено','info',2000); });
 
 // Settings save
 id('save-settings')?.addEventListener('click', ()=>{ APP_STATE.settings.rpcUrl = id('rpc-url').value.trim(); APP_STATE.settings.apiKey = id('api-key').value.trim(); saveSettings(); const s=id('settings-status'); if(s) s.textContent='Сохранено'; });

@@ -21,7 +21,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/favicons/favicon-192.png" />
   <link rel="manifest" href="/site.webmanifest" />
   <meta name="theme-color" content="#2563eb" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests"> 
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.bscscan.com https://api-testnet.bscscan.com https://bsc-dataseed.binance.org https://data-seed-prebsc-1-s1.binance.org:8545; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests"> 
   <!-- Ethers.js (UMD) для работы с кошельком -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js" integrity="sha384-3R5I9P2Y5xR0lU1YQ7i1eX0t6fjJm6C6LkQtcVfMfm8p4A4J6+1mAvGbyV6H8d4Y" crossorigin="anonymous"></script>
 </head>
@@ -105,6 +105,7 @@
           <button id="btn-import-passport" type="button">Импорт паспорта</button>
           <button id="btn-save-project" type="button" disabled>Сохранить проект</button>
           <button id="btn-list-projects" type="button">Список проектов</button>
+          <button id="btn-load-project" type="button">Загрузить (ввести адрес)</button>
           <button id="verify-btn" type="button" disabled>Верифицировать</button>
         </div>
         <div id="verify-status" class="muted" style="margin-top:6px;"></div>
