@@ -126,7 +126,7 @@ function sanitizeIdentifier(str){
 }
 const SOURCE_TEMPLATE = (name, symbol, decimals, supply) => {
   const contractId = sanitizeIdentifier(symbol);
-  return `// SPDX-License-Identifier: MIT\npragma solidity ^0.8.24;\ncontract ${contractId} {\nstring public name = '${name}';\nstring public symbol = '${symbol}';\nuint8 public decimals = ${decimals};\nuint256 public totalSupply;\nmapping(address=>uint256) public balanceOf;\nevent Transfer(address indexed from,address indexed to,uint256 value);\nconstructor(uint256 initialSupply){totalSupply=initialSupply;balanceOf[msg.sender]=initialSupply;emit Transfer(address(0),msg.sender,initialSupply);}\nfunction transfer(address to,uint256 value) external returns(bool){require(balanceOf[msg.sender]>=value,'bal');unchecked{balanceOf[msg.sender]-=value;balanceOf[to]+=value;}emit Transfer(msg.sender,to,value);return true;}\n}`;
+  return `// SPDX-License-Identifier: MIT\npragma solidity ^0.8.24;\n/**\n * Fixed-supply ERC20 minimal implementation (mint all in constructor).\n */\ncontract ${contractId} {\n    string public name = '${name}';\n    string public symbol = '${symbol}';\n    uint8 public decimals = ${decimals};\n    uint256 public totalSupply;\n    mapping(address => uint256) public balanceOf;\n    mapping(address => mapping(address => uint256)) public allowance;\n    event Transfer(address indexed from, address indexed to, uint256 value);\n    event Approval(address indexed owner, address indexed spender, uint256 value);\n    constructor(uint256 initialSupply){\n        totalSupply = initialSupply;\n        balanceOf[msg.sender] = initialSupply;\n        emit Transfer(address(0), msg.sender, initialSupply);\n    }\n    function _transfer(address from, address to, uint256 value) internal {\n        require(to != address(0), 'to=0');\n        uint256 bal = balanceOf[from];\n        require(bal >= value, 'bal');\n        unchecked { balanceOf[from] = bal - value; balanceOf[to] += value; }\n        emit Transfer(from, to, value);\n    }\n    function transfer(address to, uint256 value) external returns (bool){ _transfer(msg.sender, to, value); return true; }\n    function approve(address spender, uint256 value) external returns (bool){ allowance[msg.sender][spender] = value; emit Approval(msg.sender, spender, value); return true; }\n    function transferFrom(address from, address to, uint256 value) external returns (bool){ uint256 a = allowance[from][msg.sender]; require(a >= value, 'allow'); if(a != type(uint256).max){ unchecked { allowance[from][msg.sender] = a - value; } emit Approval(from, msg.sender, allowance[from][msg.sender]); } _transfer(from, to, value); return true; }\n    function increaseAllowance(address spender, uint256 added) external returns (bool){ uint256 cur = allowance[msg.sender][spender]; uint256 nv = cur + added; allowance[msg.sender][spender] = nv; emit Approval(msg.sender, spender, nv); return true; }\n    function decreaseAllowance(address spender, uint256 sub) external returns (bool){ uint256 cur = allowance[msg.sender][spender]; require(cur >= sub, 'under'); uint256 nv = cur - sub; allowance[msg.sender][spender] = nv; emit Approval(msg.sender, spender, nv); return true; }\n}`;
 };
 
 let compilerWorker = null;
@@ -145,14 +145,9 @@ id('token-form')?.addEventListener('submit', async (e)=>{
   const decimals = parseInt(id('token-decimals').value,10) || 18;
   const supply = BigInt(id('token-supply').value || '0');
   if(!name || !symbol || supply<=0n){ log('Заполните имя/символ/выпуск','error'); return; }
-  // Проверка сети
-  if(![56,97].includes(APP_STATE.network||0)){
-    if(confirm('Текущая сеть не BSC Mainnet/Testnet. Попробовать переключить на BSC (0x38)?')){
-      try { await APP_STATE.provider.provider.request({ method:'wallet_switchEthereumChain', params:[{ chainId:'0x38'}] }); } catch(_){}
-    }
-    // Перечитать chainId
-    try { const net = await APP_STATE.provider.getNetwork(); APP_STATE.network = Number(net.chainId);}catch(_){ }
-    if(![56,97].includes(APP_STATE.network||0)){ log('Неверная сеть для деплоя','error'); return; }
+  // Проверка сети (мультичейн)
+  if(![56,97,1,11155111].includes(APP_STATE.network||0)){
+    log('Неподдерживаемая сеть для деплоя','error'); return;
   }
   const source = SOURCE_TEMPLATE(name, symbol, decimals, supply.toString());
   const w = ensureCompiler();
@@ -167,8 +162,11 @@ id('token-form')?.addEventListener('submit', async (e)=>{
   if(status) status.textContent = 'Оценка газа...';
   try {
     const factory = new ethers.ContractFactory(result.abi, result.bytecode, APP_STATE.signer);
-    // initialSupply учитывает decimals (приводим к минимальным единицам)
-    const initialSupply = supply * (10n ** BigInt(decimals));
+  // initialSupply учитывает decimals + guard переполнения
+  const pow = 10n ** BigInt(decimals);
+  const MAX = (1n<<256n) - 1n;
+  if(supply > MAX / pow){ log('Переполнение: слишком большой выпуск при данных decimals','error'); return; }
+  const initialSupply = supply * pow;
     // Оценка газа
     let gasEstimate, feeData; 
     try { gasEstimate = await factory.signer.estimateGas(factory.getDeployTransaction(initialSupply)); } catch(e){ gasEstimate = null; }
@@ -180,17 +178,35 @@ id('token-form')?.addEventListener('submit', async (e)=>{
     const contract = await factory.deploy(initialSupply);
     const deployTx = contract.deploymentTransaction();
     log('Deploy tx: '+deployTx.hash);
-    const link = id('bscan-link'); if(link){ link.href = `https://bscscan.com/tx/${deployTx.hash}`; link.classList.remove('hidden'); link.textContent='Tx'; }
+    const explorerBase = (function(net){
+      switch(net){
+        case 1: return 'https://etherscan.io';
+        case 11155111: return 'https://sepolia.etherscan.io';
+        case 56: return 'https://bscscan.com';
+        case 97: return 'https://testnet.bscscan.com';
+        default: return '';
+      }
+    })(APP_STATE.network);
+    const link = id('bscan-link'); if(link && explorerBase){ link.href = `${explorerBase}/tx/${deployTx.hash}`; link.classList.remove('hidden'); link.textContent='Tx'; }
     await deployTx.wait();
     APP_STATE.token = { address: contract.target, abi: result.abi, bytecode: result.bytecode, contract, params:{ name, symbol, decimals, supply: initialSupply.toString() } };
     id('token-address').textContent = contract.target;
-    if(link){ link.href = `https://bscscan.com/address/${contract.target}`; link.classList.remove('hidden'); link.textContent='BscScan'; }
+  if(link && explorerBase){ link.href = `${explorerBase}/address/${contract.target}`; link.classList.remove('hidden'); link.textContent='Explorer'; }
     id('deployed-info').classList.remove('hidden');
     id('btn-transfer').disabled = false;
     id('btn-approve').disabled = false;
     id('btn-save-passport').disabled = false;
     id('btn-save-project').disabled = false;
-    id('verify-btn').disabled = false;
+    id('verify-btn-manage').disabled = false;
+    APP_STATE.token.params.source = source; // сохраняем исходник
+    // Кнопки watchAsset / copy если есть элементы в DOM
+    const watchBtn = id('watch-asset-btn');
+    if(watchBtn){ watchBtn.disabled = false; watchBtn.onclick = async ()=>{
+      if(!window.ethereum) return;
+      try { await window.ethereum.request({ method:'wallet_watchAsset', params:{ type:'ERC20', options:{ address: contract.target, symbol, decimals } } }); }
+      catch(e){ log('watchAsset error: '+e.message,'error'); }
+    }; }
+    const copyBtn = id('copy-address-btn'); if(copyBtn){ copyBtn.disabled=false; copyBtn.onclick=()=>{ navigator.clipboard.writeText(contract.target).then(()=>{ __toast && __toast('Адрес скопирован','info',2000); }); }; }
     if(status) status.textContent = 'Токен создан';
     __toast && __toast('Токен создан','info',4000);
     refreshBalance();
