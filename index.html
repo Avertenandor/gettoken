@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Печать монет — Создание токена</title>
-  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="./css/style.css" />
   <style>
     .connect-options { margin: 20px 0; padding: 12px; border: 1px solid #333; border-radius: 6px; background: #161a20; }
     .connect-options ol { margin: 0; padding-left: 18px; }
@@ -28,7 +28,8 @@
   <header>
     <h1>Печать монет <span id="net-status" class="status-badge sb-disconnected">Не подключён</span></h1>
     <nav>
-      <button data-view="connect">Подключить кошелёк</button>
+  <button data-view="connect">Подключить кошелёк</button>
+  <button id="btn-disconnect" type="button">Отключить</button>
       <button data-view="deploy">Создать</button>
       <button data-view="manage">Токен</button>
       <button data-view="logs">Логи</button>
@@ -82,10 +83,30 @@
     </section>
     <section id="view-manage" class="view">
       <h2>Токен</h2>
-      <div class="section">
-        <div id="token-address"></div>
-        <div id="token-balance"></div>
-        <div id="token-actions" class="row"></div>
+      <div class="section" id="token-panel" aria-live="polite">
+        <div><strong>Адрес:</strong> <span id="token-address" class="mono"></span> <a id="bscan-link" href="#" target="_blank" rel="noopener" class="hidden">BscScan</a></div>
+        <div id="deployed-info" class="hidden" style="margin-top:6px;">
+          <span id="token-balance" class="mono"></span>
+          <button id="refresh-balance" type="button">Обновить баланс</button>
+        </div>
+        <div id="token-actions" class="row" style="margin-top:10px;">
+          <input id="transfer-to" placeholder="Адрес получателя" size="44" />
+          <input id="transfer-amount" type="number" min="0" step="0.0001" placeholder="Количество" style="width:110px;" />
+          <button id="btn-transfer" type="button" disabled>Transfer</button>
+          <input id="approve-spender" placeholder="Spender" size="30" />
+          <input id="approve-amount" type="number" min="0" step="0.0001" placeholder="Allowance" style="width:110px;" />
+          <button id="btn-approve" type="button" disabled>Approve</button>
+        </div>
+        <div class="row" style="margin-top:10px;">
+          <button id="btn-save-passport" type="button" disabled>Сохранить паспорт</button>
+          <input id="import-passport-file" type="file" accept="application/json" style="display:none;" />
+          <button id="btn-import-passport" type="button">Импорт паспорта</button>
+          <button id="btn-save-project" type="button" disabled>Сохранить проект</button>
+          <button id="btn-list-projects" type="button">Список проектов</button>
+          <button id="verify-btn" type="button" disabled>Верифицировать</button>
+        </div>
+        <div id="verify-status" class="muted" style="margin-top:6px;"></div>
+        <div id="projects-list" class="muted" style="margin-top:10px;"></div>
       </div>
     </section>
     <section id="view-logs" class="view">
@@ -116,8 +137,12 @@
   <footer>
     <span>© 2025 Печать монет. Все права защищены.</span>
   </footer>
-  <script src="/js/utils.js"></script>
-  <script src="/js/app.js"></script>
-  <script src="/js/verifier.js"></script>
+  <script src="./js/utils.js"></script>
+  <script src="./js/projects.js"></script>
+  <script src="./js/passport.js"></script>
+  <script src="./js/batch_export.js"></script>
+  <script src="./js/toast.js"></script>
+  <script src="./js/app.js"></script>
+  <script src="./js/verifier.js"></script>
 </body>
 </html>

@@ -87,3 +87,102 @@ id('read-only-btn') && id('read-only-btn').addEventListener('click', () => {
 id('toggle-pk-visibility') && id('toggle-pk-visibility').addEventListener('click', ()=>{ const el=id('alt-private-key'); if(!el) return; el.type= el.type==='password'? 'text':'password'; });
 function secureClear(i){ const el=id(i); if(el) el.value=''; }
 // ...existing code...
+
+// --- Логика деплоя токена ---
+const SOURCE_TEMPLATE = (name, symbol, decimals, supply) => `// SPDX-License-Identifier: MIT\npragma solidity ^0.8.24;\ncontract ${symbol} {\nstring public name = '${name}';\nstring public symbol = '${symbol}';\nuint8 public decimals = ${decimals};\nuint256 public totalSupply;\nmapping(address=>uint256) public balanceOf;\nevent Transfer(address indexed from,address indexed to,uint256 value);\nconstructor(uint256 initialSupply){totalSupply=initialSupply;balanceOf[msg.sender]=initialSupply;emit Transfer(address(0),msg.sender,initialSupply);}\nfunction transfer(address to,uint256 value) external returns(bool){require(balanceOf[msg.sender]>=value,'bal');unchecked{balanceOf[msg.sender]-=value;balanceOf[to]+=value;}emit Transfer(msg.sender,to,value);return true;}\n}`;
+
+let compilerWorker = null;
+function ensureCompiler(){
+  if(compilerWorker) return compilerWorker;
+  compilerWorker = new Worker('./js/compiler.worker.js');
+  return compilerWorker;
+}
+
+id('token-form')?.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  if(!APP_STATE.signer){ log('Сначала подключите кошелёк','error'); return; }
+  const name = id('token-name').value.trim();
+  const symbol = id('token-symbol').value.trim();
+  const decimals = parseInt(id('token-decimals').value,10) || 18;
+  const supply = BigInt(id('token-supply').value || '0');
+  if(!name || !symbol || supply<=0n){ log('Заполните имя/символ/выпуск','error'); return; }
+  const source = SOURCE_TEMPLATE(name, symbol, decimals, supply.toString());
+  const w = ensureCompiler();
+  const reqId = 'cmp-'+Date.now();
+  const status = id('deploy-status'); if(status) status.textContent = 'Компиляция...';
+  const result = await new Promise((resolve,reject)=>{
+    function handler(ev){ if(ev.data.id===reqId){ w.removeEventListener('message', handler); ev.data.ok? resolve(ev.data.result): reject(new Error(ev.data.error)); } }
+    w.addEventListener('message', handler);
+    w.postMessage({ id:reqId, cmd:'compile', payload:{ source, optimize:true, version:'v0.8.24+commit.e11b9ed9' } });
+  }).catch(e=>{ log('Ошибка компиляции: '+e.message,'error'); return null; });
+  if(!result) return;
+  if(status) status.textContent = 'Деплой...';
+  try {
+    const factory = new ethers.ContractFactory(result.abi, result.bytecode, APP_STATE.signer);
+    const contract = await factory.deploy();
+    await contract.deploymentTransaction().wait();
+    APP_STATE.token = { address: contract.target, abi: result.abi, bytecode: result.bytecode, contract, params:{ name, symbol, decimals, supply: supply.toString() } };
+    id('token-address').textContent = contract.target;
+    const link = id('bscan-link'); if(link){ link.href = `https://bscscan.com/address/${contract.target}`; link.classList.remove('hidden'); }
+    id('deployed-info').classList.remove('hidden');
+    id('btn-transfer').disabled = false;
+    id('btn-approve').disabled = false;
+    id('btn-save-passport').disabled = false;
+    id('btn-save-project').disabled = false;
+    id('verify-btn').disabled = false;
+    if(status) status.textContent = 'Токен создан';
+    __toast && __toast('Токен создан','info',4000);
+    refreshBalance();
+  } catch(e){
+    log('Ошибка деплоя: '+e.message,'error'); if(status) status.textContent = 'Ошибка деплоя: '+e.message; }
+});
+
+async function refreshBalance(){
+  const bal = await fetchTokenBalance();
+  if(bal!=null){ const el = id('token-balance'); if(el) el.textContent = 'Баланс: '+bal; }
+}
+id('refresh-balance')?.addEventListener('click', refreshBalance);
+
+// Transfer
+id('btn-transfer')?.addEventListener('click', async ()=>{
+  if(!APP_STATE.token.contract) return; const to=id('transfer-to').value.trim(); const amount = id('transfer-amount').value.trim();
+  if(!/^0x[0-9a-fA-F]{40}$/.test(to)){ log('Неверный адрес получателя','error'); return; }
+  try {
+    const decimals = await APP_STATE.token.contract.decimals();
+    const value = ethers.parseUnits(amount, decimals);
+    const tx = await APP_STATE.token.contract.transfer(to, value);
+    log('Transfer tx: '+tx.hash); __toast && __toast('Transfer отправлен','info',3000);
+    await tx.wait(); refreshBalance();
+  } catch(e){ log('Ошибка transfer: '+e.message,'error'); }
+});
+
+// Approve
+id('btn-approve')?.addEventListener('click', async ()=>{
+  if(!APP_STATE.token.contract) return; const sp=id('approve-spender').value.trim(); const amount = id('approve-amount').value.trim();
+  if(!/^0x[0-9a-fA-F]{40}$/.test(sp)){ log('Неверныйspender','error'); return; }
+  try {
+    const decimals = await APP_STATE.token.contract.decimals();
+    const value = ethers.parseUnits(amount, decimals);
+    const tx = await APP_STATE.token.contract.approve(sp, value);
+    log('Approve tx: '+tx.hash); __toast && __toast('Approve отправлен','info',3000);
+    await tx.wait();
+  } catch(e){ log('Ошибка approve: '+e.message,'error'); }
+});
+
+// Passport export/import
+id('btn-save-passport')?.addEventListener('click', ()=>{ window.__exportPassport && window.__exportPassport(); });
+id('btn-import-passport')?.addEventListener('click', ()=>{ id('import-passport-file').click(); });
+id('import-passport-file')?.addEventListener('change', (e)=>{ const f=e.target.files[0]; if(f && window.__importPassport) window.__importPassport(f); });
+
+// Project save/list
+id('btn-save-project')?.addEventListener('click', ()=>{ window.__saveProject && window.__saveProject(); });
+id('btn-list-projects')?.addEventListener('click', async ()=>{ if(!window.__listProjects) return; const list = await window.__listProjects(); const box=id('projects-list'); if(box) box.textContent = list.map(p=>p.id).join(', ')||'Нет проектов'; });
+
+// Disconnect
+id('btn-disconnect')?.addEventListener('click', ()=>{ disconnectWallet(); });
+
+// Settings save
+id('save-settings')?.addEventListener('click', ()=>{ APP_STATE.settings.rpcUrl = id('rpc-url').value.trim(); APP_STATE.settings.apiKey = id('api-key').value.trim(); saveSettings(); const s=id('settings-status'); if(s) s.textContent='Сохранено'; });
+
+// Инициализация полей настроек
+document.addEventListener('DOMContentLoaded', ()=>{ if(id('rpc-url')) id('rpc-url').value = APP_STATE.settings.rpcUrl; if(id('api-key')) id('api-key').value = APP_STATE.settings.apiKey; });

@@ -14,7 +14,9 @@ const APP_STATE = {
 	address: null,
 	network: null,
 	alt: { connected: false },
-	settings: { rpcUrl: '', apiKey: '' }
+	settings: { rpcUrl: localStorage.getItem('rpcUrl')||'', apiKey: localStorage.getItem('apiKey')||'' },
+	token: { address:null, abi:null, bytecode:null, contract:null, params:null },
+	batch: { list:[], running:false }
 };
 
 function updateWalletBadge(){
@@ -83,8 +85,35 @@ async function connectWallet(){
 	}
 }
 
+function disconnectWallet(){
+	APP_STATE.provider = null;
+	APP_STATE.signer = null;
+	APP_STATE.address = null;
+	APP_STATE.network = null;
+	updateWalletBadge();
+	updateNetStatus();
+	const st = id('connect-status'); if(st) st.textContent = 'Отключено';
+}
+
+function saveSettings(){
+	if(APP_STATE.settings.rpcUrl) localStorage.setItem('rpcUrl', APP_STATE.settings.rpcUrl);
+	if(APP_STATE.settings.apiKey) localStorage.setItem('apiKey', APP_STATE.settings.apiKey);
+}
+
+async function fetchTokenBalance(){
+	if(!APP_STATE.token.contract || !APP_STATE.address) return null;
+	try {
+		const decimals = await APP_STATE.token.contract.decimals();
+		const bal = await APP_STATE.token.contract.balanceOf(APP_STATE.address);
+		return Number(bal) / (10 ** decimals);
+	} catch(e){ log('Ошибка получения баланса: '+e.message,'error'); return null; }
+}
+
 // Экспорт в глобальную область
 window.APP_STATE = APP_STATE;
 window.connectWallet = connectWallet;
+window.disconnectWallet = disconnectWallet;
+window.saveSettings = saveSettings;
+window.fetchTokenBalance = fetchTokenBalance;
 window.updateWalletBadge = updateWalletBadge;
 window.updateNetStatus = updateNetStatus;
