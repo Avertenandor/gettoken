@@ -23,15 +23,17 @@ async function importTokenPassport(file){
   const contract = new ethers.Contract(data.address, data.abi, providerOrSigner);
   APP_STATE.token = { address: data.address, abi: data.abi, bytecode: data.bytecode||null, contract, params: data.params||null };
   if(APP_STATE.token.contract){
-  const addrEl = document.getElementById('token-address'); if(addrEl) addrEl.textContent = data.address;
-  const base = getExplorerBase(data.chainId || APP_STATE.network);
-  const link = document.getElementById('bscan-link'); if(link){ link.href = base? `${base}/address/${data.address}`:'#'; link.classList.remove('hidden'); }
-  document.getElementById('deployed-info')?.classList.remove('hidden');
-  document.getElementById('btn-transfer') && (document.getElementById('btn-transfer').disabled=false);
-  document.getElementById('btn-approve') && (document.getElementById('btn-approve').disabled=false);
-  document.getElementById('verify-btn-manage') && (document.getElementById('verify-btn-manage').disabled = !APP_STATE.token.bytecode);
-  document.getElementById('btn-save-passport') && (document.getElementById('btn-save-passport').disabled=false);
-  document.getElementById('btn-save-project') && (document.getElementById('btn-save-project').disabled=false);
+    const addrEl = document.getElementById('token-address'); if(addrEl) addrEl.textContent = data.address;
+    const base = (typeof getExplorerBase==='function') ? getExplorerBase(data.chainId || APP_STATE.network) : '';
+    const link = document.getElementById('bscan-link'); if(link){ link.href = base? `${base}/address/${data.address}`:'#'; link.classList.remove('hidden'); }
+    document.getElementById('deployed-info')?.classList.remove('hidden');
+    const tBtn = document.getElementById('btn-transfer'); if(tBtn) tBtn.disabled=false;
+    const aBtn = document.getElementById('btn-approve'); if(aBtn) aBtn.disabled=false;
+    const vBtn = document.getElementById('verify-btn-manage'); if(vBtn) vBtn.disabled = !APP_STATE.token.bytecode;
+    const spBtn = document.getElementById('btn-save-passport'); if(spBtn) spBtn.disabled=false;
+    const prBtn = document.getElementById('btn-save-project'); if(prBtn) prBtn.disabled=false;
+    const dlAbi = document.getElementById('download-abi-btn'); if(dlAbi) dlAbi.disabled = !APP_STATE.token.abi;
+    const dlByte = document.getElementById('download-bytecode-btn'); if(dlByte) dlByte.disabled = !APP_STATE.token.bytecode;
   }
   if(window.__saveProject){ window.__saveProject(); }
   log('Импортирован паспорт токена '+data.address);

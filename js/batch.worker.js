@@ -31,7 +31,7 @@ self.onmessage = async (e) => {
       if (running) throw new Error('already running');
       running = true; paused = false; startedAt = Date.now();
       counters = { sent:0, ok:0, err:0 };
-      processLoop();
+  processLoop();
       self.postMessage({ id, ok: true });
     } else if (cmd === 'pause') { paused = true; self.postMessage({ id, ok: true }); }
     else if (cmd === 'resume') { paused = false; self.postMessage({ id, ok: true }); }

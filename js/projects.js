@@ -66,8 +66,8 @@ window.__loadProject = async function(id){
       if(!providerOrSigner){ reject('нет провайдера'); return; }
       const contract = new ethers.Contract(rec.address, rec.abi, providerOrSigner);
       APP_STATE.token = { address: rec.address, abi: rec.abi, bytecode: rec.bytecode, contract, params: rec.params||null };
-      const addrEl = document.getElementById('token-address'); if(addrEl) addrEl.textContent = rec.address;
-  const base = getExplorerBase(rec.chainId || APP_STATE.network);
+  const addrEl = document.getElementById('token-address'); if(addrEl) addrEl.textContent = rec.address;
+  const base = (typeof getExplorerBase==='function') ? getExplorerBase(rec.chainId || APP_STATE.network) : '';
   const link = document.getElementById('bscan-link'); if(link){ link.href = base? `${base}/address/${rec.address}`:'#'; link.classList.remove('hidden'); }
       document.getElementById('deployed-info')?.classList.remove('hidden');
       document.getElementById('btn-transfer').disabled = false;
