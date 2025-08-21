@@ -109,12 +109,30 @@
           <button id="verify-btn" type="button" disabled>Верифицировать</button>
         </div>
         <div id="verify-status" class="muted" style="margin-top:6px;"></div>
+        <div id="verify-progress-container" class="hidden" style="margin-top:4px;">
+          <div id="verify-progress-bar" style="height:6px;background:#1f2937;border-radius:3px;overflow:hidden;">
+            <div id="verify-progress-inner" style="height:100%;width:0;background:#2563eb;transition:width .3s;"></div>
+          </div>
+          <small id="verify-progress-text" class="muted"></small>
+        </div>
         <div id="projects-list" class="muted" style="margin-top:10px;"></div>
       </div>
     </section>
     <section id="view-logs" class="view">
       <h2>Логи</h2>
-      <div id="log-output" class="section"></div>
+      <div class="row" style="gap:8px;align-items:center;margin-bottom:8px;">
+        <label>Фильтр:
+          <select id="log-filter">
+            <option value="all">Все</option>
+            <option value="info">Info</option>
+            <option value="error">Error</option>
+          </select>
+        </label>
+        <button id="log-clear" type="button">Очистить</button>
+        <button id="log-export" type="button">Экспорт</button>
+        <span id="log-count" class="muted"></span>
+      </div>
+      <pre id="log-output" class="section" style="max-height:420px;overflow:auto;margin:0;white-space:pre-wrap;"></pre>
     </section>
     <section id="view-settings" class="view">
       <h2>Настройки</h2>

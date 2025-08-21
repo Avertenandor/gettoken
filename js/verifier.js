@@ -29,8 +29,10 @@ async function verifyContract(){
 		if(data.status!=='1'){ throw new Error(data.result||'submit error'); }
 		const guid = data.result;
 		statusEl.textContent='GUID получен, polling...';
+		showVerifyProgress(true);
 		const result = await pollVerify(apiBase, guid, 60); // максимум 60 попыток ~2-3 мин
 		statusEl.textContent = result.ok? 'Контракт верифицирован':'Статус: '+result.status;
+		showVerifyProgress(false);
 		log('Результат верификации: '+JSON.stringify(result));
 	} catch(e){
 		log('Ошибка верификации: '+e.message,'error');
@@ -50,11 +52,23 @@ async function pollVerify(apiBase, guid, maxAttempts){
 		await new Promise(r=>setTimeout(r, 3000));
 		const url = `${apiBase}?module=contract&action=checkverifystatus&guid=${encodeURIComponent(guid)}`;
 		const r = await fetch(url); const d = await r.json();
+		updateVerifyProgress((i+1)/maxAttempts, d.result||'');
 		if(d.status==='1') return { ok:true, status:d.result };
 		if(d.status==='0' && /already verified/i.test(d.result||'')) return { ok:true, status:'already verified' };
 		if(d.status==='0' && !/Pending in queue|In progress/i.test(d.result||'')) return { ok:false, status:d.result };
 	}
 	return { ok:false, status:'timeout' };
+}
+
+function showVerifyProgress(on){
+	const c = document.getElementById('verify-progress-container'); if(!c) return;
+	if(on) c.classList.remove('hidden'); else c.classList.add('hidden');
+	if(!on){ updateVerifyProgress(0,''); }
+}
+function updateVerifyProgress(fraction, text){
+	const bar = document.getElementById('verify-progress-inner');
+	if(bar) bar.style.width = Math.min(100, Math.round(fraction*100))+'%';
+	const t = document.getElementById('verify-progress-text'); if(t) t.textContent = text;
 }
 
 document.getElementById('verify-btn')?.addEventListener('click', verifyContract);

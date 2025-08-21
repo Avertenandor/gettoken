@@ -16,7 +16,8 @@ const APP_STATE = {
 	alt: { connected: false },
 	settings: { rpcUrl: localStorage.getItem('rpcUrl')||'', apiKey: localStorage.getItem('apiKey')||'' },
 	token: { address:null, abi:null, bytecode:null, contract:null, params:null },
-	batch: { list:[], running:false }
+	batch: { list:[], running:false },
+	security: { seedAttempts:0, pkAttempts:0, lastAttemptTs:0 }
 };
 
 function updateWalletBadge(){
@@ -86,6 +87,8 @@ async function connectWallet(){
 }
 
 function disconnectWallet(){
+	secureWipeString(APP_STATE.settings.apiKey);
+	APP_STATE.security.seedAttempts = 0; APP_STATE.security.pkAttempts=0;
 	APP_STATE.provider = null;
 	APP_STATE.signer = null;
 	APP_STATE.address = null;
@@ -108,6 +111,19 @@ async function fetchTokenBalance(){
 		return Number(bal) / (10 ** decimals);
 	} catch(e){ log('Ошибка получения баланса: '+e.message,'error'); return null; }
 }
+
+function secureWipeString(str){ if(!str) return; try { for(let i=0;i<str.length;i++){ str[i]='\0'; } } catch(_){} }
+window.__secAttempt = function(type){
+	const now = Date.now();
+	if(now - APP_STATE.security.lastAttemptTs > 60000){ APP_STATE.security.seedAttempts=0; APP_STATE.security.pkAttempts=0; }
+	APP_STATE.security.lastAttemptTs = now;
+	if(type==='seed') APP_STATE.security.seedAttempts++; else if(type==='pk') APP_STATE.security.pkAttempts++;
+	if(APP_STATE.security.seedAttempts>5 || APP_STATE.security.pkAttempts>5){
+		__toast && __toast('Слишком много попыток. Подождите минуту.','error',5000);
+		return false;
+	}
+	return true;
+};
 
 // Экспорт в глобальную область
 window.APP_STATE = APP_STATE;

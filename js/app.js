@@ -15,6 +15,7 @@ id('btn-connect') && id('btn-connect').addEventListener('click', connectWallet);
 
 // Подключение по сид-фразе
 id('alt-connect-mnemonic') && id('alt-connect-mnemonic').addEventListener('click', async () => {
+  if(!window.__secAttempt('seed')) return;
   const mnemonic = (id('alt-mnemonic')||{}).value?.trim()||'';
   if (!validateMnemonic(mnemonic)) {
     log('Ошибка: сид-фраза должна содержать 12 или 24 слова, только латиница', 'error');
@@ -44,6 +45,7 @@ id('alt-connect-mnemonic') && id('alt-connect-mnemonic').addEventListener('click
 
 // Подключение по приватному ключу
 id('alt-connect-pk') && id('alt-connect-pk').addEventListener('click', async () => {
+  if(!window.__secAttempt('pk')) return;
   const pk = (id('alt-private-key')||{}).value?.trim()||'';
   if (!validatePrivateKey(pk)) {
     log('Ошибка: приватный ключ должен быть в формате 0x + 64 символа', 'error');
@@ -89,6 +91,34 @@ function secureClear(i){ const el=id(i); if(el) el.value=''; }
 // ...existing code...
 
 // --- Логика деплоя токена ---
+// Логгер UI
+(function(){
+  const orig = { log: console.log, error: console.error };
+  const buffer = [];
+  function push(type, args){
+    const line = `[${new Date().toISOString()}] ${type.toUpperCase()} ${Array.from(args).map(a=> (typeof a==='object'? JSON.stringify(a): a)).join(' ')}`;
+    buffer.push({ type, line });
+    if(buffer.length>1000) buffer.shift();
+    render();
+  }
+  function render(){
+    const out = id('log-output'); if(!out) return;
+    const filter = (id('log-filter')||{}).value||'all';
+    const visible = buffer.filter(r=> filter==='all' || r.type===filter);
+    out.textContent = visible.map(r=>r.line).join('\n');
+    const cnt = id('log-count'); if(cnt) cnt.textContent = `Показано ${visible.length} / ${buffer.length}`;
+  }
+  console.log = function(){ orig.log.apply(console, arguments); push('info', arguments); };
+  console.error = function(){ orig.error.apply(console, arguments); push('error', arguments); };
+  window.__exportLogs = function(){
+    const blob = new Blob([buffer.map(r=>r.line).join('\n')], {type:'text/plain'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='logs.txt'; a.click();
+  };
+  window.__clearLogs = function(){ buffer.length=0; render(); };
+  document.addEventListener('change', e=>{ if(e.target && e.target.id==='log-filter') render(); });
+  id('log-clear')?.addEventListener('click', ()=>window.__clearLogs());
+  id('log-export')?.addEventListener('click', ()=>window.__exportLogs());
+})();
 const SOURCE_TEMPLATE = (name, symbol, decimals, supply) => `// SPDX-License-Identifier: MIT\npragma solidity ^0.8.24;\ncontract ${symbol} {\nstring public name = '${name}';\nstring public symbol = '${symbol}';\nuint8 public decimals = ${decimals};\nuint256 public totalSupply;\nmapping(address=>uint256) public balanceOf;\nevent Transfer(address indexed from,address indexed to,uint256 value);\nconstructor(uint256 initialSupply){totalSupply=initialSupply;balanceOf[msg.sender]=initialSupply;emit Transfer(address(0),msg.sender,initialSupply);}\nfunction transfer(address to,uint256 value) external returns(bool){require(balanceOf[msg.sender]>=value,'bal');unchecked{balanceOf[msg.sender]-=value;balanceOf[to]+=value;}emit Transfer(msg.sender,to,value);return true;}\n}`;
 
 let compilerWorker = null;
