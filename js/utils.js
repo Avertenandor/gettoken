@@ -21,7 +21,8 @@ const APP_STATE = {
 		apiKey: localStorage.getItem('apiKey')||'',
 		networkId: parseInt(localStorage.getItem('networkId')||'56',10), // default BSC
 		usdtAddress: localStorage.getItem('usdtAddress')||'',
-		plexAddress: localStorage.getItem('plexAddress')||''
+		plexAddress: localStorage.getItem('plexAddress')||'',
+		wcProjectId: localStorage.getItem('wcProjectId')||''
 	},
 	token: { address:null, abi:null, bytecode:null, contract:null, params:null },
 	batch: { list:[], running:false }
@@ -93,10 +94,10 @@ function providerId(p){
 	if(p === window.BinanceChain) return 'binance';
 	return 'unknown';
 }
-function pickInjectedProvider(){
+function pickInjectedProvider(preferredId){
 	const list = detectInjectedProviders();
 	if(!list.length) return null;
-	const wanted = localStorage.getItem('lastProvider')||'';
+	const wanted = preferredId || localStorage.getItem('lastProvider')||'';
 	let chosen = list.find(p=> providerId(p)===wanted);
 	if(!chosen){
 		chosen = list.find(p=> p.isMetaMask) || list.find(p=> (p.isOkxWallet||p.isOKXWallet)) || list.find(p=> p.isTrust) || list.find(p=> p===window.BinanceChain) || list[0];
@@ -151,10 +152,32 @@ function bindProviderEvents(injected){
 	injected.on('disconnect', ()=>{ disconnectWallet(); });
 }
 
-async function connectWallet(){
+async function requestAccountsWithRetry(injected, maxTries=3){
+	let lastErr;
+	for(let i=0;i<maxTries;i++){
+		try{
+			if(injected && typeof injected.request==='function'){
+				const acc = await injected.request({ method:'eth_requestAccounts' });
+				if(acc && acc.length) return acc;
+			}
+			// Fallback enable() для старых/альтернативных провайдеров (BinanceChain)
+			if(injected && typeof injected.enable==='function'){
+				const acc2 = await injected.enable(); if(acc2 && acc2.length) return acc2;
+			}
+			// Fallback getAccounts
+			if(injected && typeof injected.request==='function'){
+				const acc3 = await injected.request({ method:'eth_accounts' }); if(acc3 && acc3.length) return acc3;
+			}
+		}catch(e){ lastErr = e; }
+		await new Promise(r=> setTimeout(r, 400*(i+1)));
+	}
+	if(lastErr) throw lastErr; else throw new Error('No active wallet found');
+}
+
+async function connectWallet(preferredId){
 	try {
 		if(typeof window === 'undefined') throw new Error('Window недоступен');
-		const injected = pickInjectedProvider();
+		const injected = pickInjectedProvider(preferredId);
 		if(!injected){
 			log('Кошелёк не найден. Установите MetaMask / OKX / Binance Wallet', 'error');
 			const st = id('connect-status'); if(st) st.textContent = 'Кошелёк не найден в браузере';
@@ -162,8 +185,8 @@ async function connectWallet(){
 		}
 		bindProviderEvents(injected);
 		APP_STATE.alt.injected = injected;
-		// Запрос аккаунтов
-		const accounts = await injected.request({ method: 'eth_requestAccounts' });
+		// Запрос аккаунтов с ретраями
+		const accounts = await requestAccountsWithRetry(injected, 3);
 		if(!accounts || !accounts.length) throw new Error('Аккаунты не возвращены');
 		const desired = APP_STATE.settings.networkId;
 		try { if(desired) await ensureChain(injected, desired); } catch(e){ log('Не удалось переключить сеть: '+(e.message||e),'error'); }
@@ -175,7 +198,10 @@ async function connectWallet(){
 		if(window.ethers){ provider = new ethers.BrowserProvider(injected); }
 		else { provider = injected; }
 		let signer = null;
-		if(provider && provider.getSigner){ signer = await provider.getSigner(); }
+		if(provider && provider.getSigner){
+			try { signer = await provider.getSigner(); }
+			catch(_){ /* повторим один раз после короткой задержки */ await new Promise(r=>setTimeout(r,200)); signer = await provider.getSigner(); }
+		}
 		APP_STATE.provider = provider;
 		APP_STATE.signer = signer;
 		APP_STATE.address = accounts[0];
