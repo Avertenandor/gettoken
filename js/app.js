@@ -344,6 +344,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
   if(id('api-key')) id('api-key').value = APP_STATE.settings.apiKey; 
   if(id('usdt-address')) id('usdt-address').value = APP_STATE.settings.usdtAddress; 
   if(id('plex-address')) id('plex-address').value = APP_STATE.settings.plexAddress; 
+  // Разрешение risky-модулей (сид/PK)
+  const chk = id('enable-risky-modes');
+  const block = id('risk-modes-block');
+  if(chk && block){
+    const saved = localStorage.getItem('enableRiskModes')==='1';
+    chk.checked = saved; block.style.display = saved? 'list-item':'none';
+    chk.addEventListener('change', ()=>{ const on=chk.checked; localStorage.setItem('enableRiskModes', on?'1':'0'); block.style.display = on? 'list-item':'none'; });
+  }
 });
 // Download ABI / Bytecode (single canonical buttons)
 function downloadText(filename, text, mime='application/json'){ const blob=new Blob([text],{type:mime}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click(); }
@@ -370,6 +378,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // Allowance viewer
+const allowBtn = id('check-allowance'); if(allowBtn) allowBtn.disabled = !(APP_STATE.token && APP_STATE.token.contract && APP_STATE.address);
 id('check-allowance')?.addEventListener('click', async ()=>{
   if(!APP_STATE.token.contract || !APP_STATE.address) return;
   const spender = id('allowance-spender').value.trim();
