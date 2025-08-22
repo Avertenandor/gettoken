@@ -50,7 +50,7 @@
       if(type==='walletconnect'){
         const projectId = (window.APP_STATE?.settings?.wcProjectId) || document.getElementById('wc-project-id')?.value?.trim();
         if(!projectId){ const st=id('connect-status'); if(st) st.textContent='Укажите WalletConnect Project ID в настройках'; return; }
-  const EthereumProvider = window.WalletConnectEthereumProvider || window.EthereumProvider;
+  const EthereumProvider = (window.WalletConnectEthereumProvider && (window.WalletConnectEthereumProvider.default||window.WalletConnectEthereumProvider)) || window.EthereumProvider;
   if(!EthereumProvider){ const st=id('connect-status'); if(st) st.textContent='WalletConnect провайдер не загружен'; return; }
   const provider = await EthereumProvider.init({ projectId, showQrModal: true, chains: [56] });
         await provider.enable();
