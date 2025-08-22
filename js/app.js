@@ -35,10 +35,8 @@ async function autoDetectAndConnect(input){
   const netId = APP_STATE.settings.networkId||56;
   const candidates = [
     APP_STATE.settings.rpcUrl,
-    NETWORK_PRESETS[netId]?.rpc,
-    'https://bsc-dataseed.binance.org',
-    'https://rpc.ankr.com/eth',
-    'https://rpc.sepolia.org'
+    NETWORK_PRESETS[56]?.rpc,
+    'https://bsc-dataseed.binance.org'
   ].filter(Boolean);
   try {
     if(mn){
@@ -93,8 +91,8 @@ async function refreshWalletBalances(){
     }
     // ERC20 balances (USDT / PLEX) если адреса заданы в настройках
     const erc20List = [
-      { key:'usdtAddress', out:'balance-usdt', label:'USDT', decimalsGuess:6 },
-      { key:'plexAddress', out:'balance-plex', label:'PLEX', decimalsGuess:18 }
+  { key:'usdtAddress', out:'balance-usdt', label:'USDT', decimalsGuess:18 },
+  { key:'plexAddress', out:'balance-plex', label:'PLEX', decimalsGuess:9 }
     ];
     for(const t of erc20List){
       const tokenAddr = APP_STATE.settings[t.key]; if(!tokenAddr || !/^0x[0-9a-fA-F]{40}$/.test(tokenAddr)) { const out=id(t.out); if(out) out.textContent=''; continue; }
@@ -113,7 +111,7 @@ async function refreshWalletBalances(){
 window.__refreshWalletBalances = refreshWalletBalances;
 
 // Подключение через расширение
-id('btn-connect') && id('btn-connect').addEventListener('click', connectWallet);
+id('btn-connect') && id('btn-connect').addEventListener('click', (e)=>{ e.preventDefault(); const m=document.getElementById('connect-modal'); if(m) m.style.display='flex'; else connectWallet(); });
 
 // --- Allowance check ---
 id('check-allowance')?.addEventListener('click', async ()=>{
@@ -397,6 +395,9 @@ id('save-settings')?.addEventListener('click', ()=>{
   APP_STATE.settings.apiKey = id('api-key').value.trim(); 
   if(id('usdt-address')) APP_STATE.settings.usdtAddress = id('usdt-address').value.trim();
   if(id('plex-address')) APP_STATE.settings.plexAddress = id('plex-address').value.trim();
+  APP_STATE.settings.networkId = 56; // фиксируем BSC
+  if(!APP_STATE.settings.usdtAddress) APP_STATE.settings.usdtAddress = '0x55d398326f99059fF775485246999027B3197955';
+  if(!APP_STATE.settings.plexAddress) APP_STATE.settings.plexAddress = '0xdf179b6cAdBC61FFD86A3D2e55f6d6e083ade6c1';
   saveSettings(); 
   const s=id('settings-status'); if(s) s.textContent='Сохранено'; 
   if(window.__refreshWalletBalances) window.__refreshWalletBalances();
@@ -408,8 +409,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
   if(id('rpc-url')) id('rpc-url').value = APP_STATE.settings.rpcUrl; 
   if(id('api-key')) id('api-key').value = APP_STATE.settings.apiKey; 
   if(id('wc-project-id')){ APP_STATE.settings.wcProjectId = localStorage.getItem('wcProjectId')||''; id('wc-project-id').value = APP_STATE.settings.wcProjectId; }
-  if(id('usdt-address')) id('usdt-address').value = APP_STATE.settings.usdtAddress; 
-  if(id('plex-address')) id('plex-address').value = APP_STATE.settings.plexAddress; 
+  if(id('usdt-address')) id('usdt-address').value = APP_STATE.settings.usdtAddress||'0x55d398326f99059fF775485246999027B3197955'; 
+  if(id('plex-address')) id('plex-address').value = APP_STATE.settings.plexAddress||'0xdf179b6cAdBC61FFD86A3D2e55f6d6e083ade6c1'; 
   // Разрешение risky-модулей (сид/PK)
   const chk = id('enable-risky-modes');
   const block = id('risk-modes-block');

@@ -19,9 +19,9 @@ const APP_STATE = {
 	settings: {
 		rpcUrl: localStorage.getItem('rpcUrl')||'',
 		apiKey: localStorage.getItem('apiKey')||'',
-		networkId: parseInt(localStorage.getItem('networkId')||'56',10), // default BSC
-		usdtAddress: localStorage.getItem('usdtAddress')||'',
-		plexAddress: localStorage.getItem('plexAddress')||'',
+		networkId: 56, // только BSC
+		usdtAddress: localStorage.getItem('usdtAddress')||'0x55d398326f99059fF775485246999027B3197955',
+		plexAddress: localStorage.getItem('plexAddress')||'0xdf179b6cAdBC61FFD86A3D2e55f6d6e083ade6c1',
 		wcProjectId: localStorage.getItem('wcProjectId')||''
 	},
 	token: { address:null, abi:null, bytecode:null, contract:null, params:null },
