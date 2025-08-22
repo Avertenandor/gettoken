@@ -341,10 +341,26 @@ id('token-form')?.addEventListener('submit', async (e)=>{
   const reqId = 'cmp-'+Date.now();
   const status = id('deploy-status'); if(status) status.textContent = 'Компиляция...';
   const result = await new Promise((resolve,reject)=>{
-    function handler(ev){ if(ev.data.id===reqId){ w.removeEventListener('message', handler); ev.data.ok? resolve(ev.data.result): reject(new Error(ev.data.error)); } }
+    const to = setTimeout(()=>{ reject(new Error('Компилятор не ответил (timeout)')); }, 20000);
+    function handler(ev){ if(ev.data.id===reqId){ clearTimeout(to); w.removeEventListener('message', handler); ev.data.ok? resolve(ev.data.result): reject(new Error(ev.data.error)); } }
     w.addEventListener('message', handler);
+    // Быстрый ping, чтобы прогреть воркер
+    try{ w.postMessage({ id:'ping-'+reqId, cmd:'ping' }); }catch(_){ }
     w.postMessage({ id:reqId, cmd:'compile', payload:{ source, optimize:true, version:'v0.8.24+commit.e11b9ed9' } });
-  }).catch(e=>{ log('Ошибка компиляции: '+e.message,'error'); return null; });
+  }).catch(async e=>{
+    log('Ошибка компиляции: '+e.message,'error');
+    // Авто-фоллбек на более свежую версию solc
+    const altId = reqId+'-alt';
+    try{
+      const res2 = await new Promise((resolve2,reject2)=>{
+        const to2 = setTimeout(()=>{ reject2(new Error('Компилятор (alt) не ответил')); }, 20000);
+        function h2(ev){ if(ev.data.id===altId){ clearTimeout(to2); w.removeEventListener('message', h2); ev.data.ok? resolve2(ev.data.result): reject2(new Error(ev.data.error)); } }
+        w.addEventListener('message', h2);
+        w.postMessage({ id:altId, cmd:'compile', payload:{ source, optimize:true, version:'v0.8.26+commit.8a97fa17' } });
+      });
+      return res2;
+    }catch(e2){ log('Ошибка компиляции (alt): '+e2.message,'error'); return null; }
+  });
   if(!result || !result.abi || !result.bytecode){ log('Компилятор вернул пустой результат','error'); if(status) status.textContent='Ошибка компиляции'; return; }
   if(status) status.textContent = 'Оценка газа...';
   try {
