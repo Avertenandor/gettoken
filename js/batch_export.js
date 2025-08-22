@@ -1,35 +1,65 @@
-// batch_export.js - формирование расширенного JSON отчёта batch
-// Формат: { generatedAt, network, tokenAddress, amount, delay, retries, items:[ { address, status, tx, attempts, error, startedAt, finishedAt, latencyMs } ], summary }
+// batch_export.js - экспорт результатов batch операций
 
-(function(){
-  window.__exportBatchJson = function(){
-    if(!APP_STATE.batch || !APP_STATE.batch.list.length){ alert('Нет данных batch'); return; }
-    const now = new Date().toISOString();
-    const rows = APP_STATE.batch.list.map(it=>({
-      address: it.address,
-      status: it.status||'',
-      tx: it.tx||'',
-      attempts: it.attempts||0,
-      error: it.error||'',
-      startedAt: it.startedAt||null,
-      finishedAt: it.finishedAt||null,
-      latencyMs: (it.startedAt && it.finishedAt)? (it.finishedAt - it.startedAt): null
-    }));
-    const summary = {
-      total: rows.length,
-      success: rows.filter(r=>r.status==='success').length,
-      error: rows.filter(r=>r.status==='error').length
-    };
-    const meta = {
-      generatedAt: now,
-      network: APP_STATE.network,
-      tokenAddress: APP_STATE.token && APP_STATE.token.address,
-      amount: document.getElementById('batch-amount').value || '1',
-      delay: document.getElementById('batch-delay').value,
-      retries: document.getElementById('batch-retries').value
-    };
-    const payload = { ...meta, items: rows, summary };
-    const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'batch_report.json'; a.click();
+window.__exportBatchJson = function() {
+  if(!APP_STATE.batch || !APP_STATE.batch.list) {
+    console.error('Нет данных для экспорта');
+    return;
+  }
+  
+  const exportData = {
+    timestamp: new Date().toISOString(),
+    token: APP_STATE.token ? APP_STATE.token.address : null,
+    network: APP_STATE.network,
+    transactions: APP_STATE.batch.list.map(item => ({
+      address: item.address,
+      status: item.status || 'pending',
+      tx: item.tx || null,
+      attempts: item.attempts || 0,
+      error: item.error || null
+    })),
+    summary: {
+      total: APP_STATE.batch.list.length,
+      success: APP_STATE.batch.list.filter(i => i.status === 'success').length,
+      failed: APP_STATE.batch.list.filter(i => i.status === 'failed').length,
+      pending: APP_STATE.batch.list.filter(i => i.status === 'pending' || i.status === 'queued').length
+    }
   };
-})();
+  
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `batch_export_${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  
+  if(window.__toast) {
+    window.__toast('Batch данные экспортированы', 'info', 3000);
+  }
+};
+
+// Функция импорта batch списка
+window.__importBatchList = function(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if(data.transactions && Array.isArray(data.transactions)) {
+        const addresses = data.transactions.map(t => t.address).filter(Boolean);
+        const textarea = document.getElementById('batch-addresses');
+        if(textarea) {
+          textarea.value = addresses.join('\n');
+          if(window.__toast) {
+            window.__toast(`Импортировано ${addresses.length} адресов`, 'info', 3000);
+          }
+        }
+      }
+    } catch(err) {
+      console.error('Ошибка импорта:', err);
+      if(window.__toast) {
+        window.__toast('Ошибка импорта файла', 'error', 3000);
+      }
+    }
+  };
+  reader.readAsText(file);
+};

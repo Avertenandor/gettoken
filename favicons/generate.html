@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Генератор PNG фавиконов</title>
+  <style>
+    body { font-family: Arial; padding: 20px; background: #f0f0f0; }
+    .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+    canvas { border: 1px solid #ddd; margin: 10px; }
+    button { background: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin: 5px; }
+    button:hover { background: #1d4ed8; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Генератор PNG фавиконов</h1>
+    <p>Откройте эту страницу в браузере, нажмите кнопки для скачивания PNG файлов:</p>
+    
+    <canvas id="canvas16" width="16" height="16"></canvas>
+    <button onclick="download('16')">Скачать 16x16</button><br>
+    
+    <canvas id="canvas32" width="32" height="32"></canvas>
+    <button onclick="download('32')">Скачать 32x32</button><br>
+    
+    <canvas id="canvas192" width="192" height="192"></canvas>
+    <button onclick="download('192')">Скачать 192x192</button><br>
+    
+    <canvas id="canvas512" width="512" height="512"></canvas>
+    <button onclick="download('512')">Скачать 512x512</button>
+  </div>
+
+  <script>
+    // Рисуем иконку монеты на всех canvas
+    function drawIcon(canvasId, size) {
+      const canvas = document.getElementById(canvasId);
+      const ctx = canvas.getContext('2d');
+      
+      // Градиент фона
+      const gradient = ctx.createLinearGradient(0, 0, size, size);
+      gradient.addColorStop(0, '#2563eb');
+      gradient.addColorStop(1, '#1d4ed8');
+      
+      // Круг монеты
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(size/2, size/2, size/2 - 1, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Внутренний круг
+      ctx.strokeStyle = '#60a5fa';
+      ctx.lineWidth = Math.max(1, size/32);
+      ctx.beginPath();
+      ctx.arc(size/2, size/2, size/2 - size/8, 0, Math.PI * 2);
+      ctx.stroke();
+      
+      // Символ ₽
+      ctx.fillStyle = 'white';
+      ctx.font = `bold ${size * 0.5}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('₽', size/2, size/2 + size/20);
+    }
+    
+    // Инициализация
+    drawIcon('canvas16', 16);
+    drawIcon('canvas32', 32);
+    drawIcon('canvas192', 192);
+    drawIcon('canvas512', 512);
+    
+    // Функция скачивания
+    function download(size) {
+      const canvas = document.getElementById('canvas' + size);
+      canvas.toBlob(function(blob) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `favicon-${size}.png`;
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,1 +1,74 @@
-<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><title>Offline – gettoken</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font-family:system-ui,sans-serif;margin:40px;max-width:600px}h1{font-size:24px;margin-bottom:12px}p{line-height:1.4}code{background:#eee;padding:2px 4px;border-radius:4px}</style></head><body><h1>Вы офлайн</h1><p>Страница кэширована. Некоторые функции (деплой, верификация) недоступны без сети.</p><p>Подключитесь к интернету и обновите страницу.</p><p><code>gettoken.nl</code></p></body></html>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Печать монет - Оффлайн</title>
+  <style>
+    body {
+      font-family: system-ui, Arial, sans-serif;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: #0f1115;
+      color: #eee;
+      text-align: center;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      padding: 40px;
+      background: #181c22;
+      border-radius: 12px;
+      border: 1px solid #333;
+    }
+    h1 {
+      color: #2563eb;
+      margin-bottom: 20px;
+    }
+    p {
+      line-height: 1.6;
+      margin: 20px 0;
+      color: #aaa;
+    }
+    .icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 20px;
+      opacity: 0.5;
+    }
+    button {
+      background: #2563eb;
+      border: none;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    button:hover {
+      background: #1d4ed8;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/>
+      <line x1="16" y1="8" x2="2" y2="22"/>
+      <line x1="17.5" y1="15" x2="9" y2="15"/>
+    </svg>
+    <h1>Нет подключения к интернету</h1>
+    <p>
+      Приложение "Печать монет" требует подключения к сети для работы с блокчейном.
+    </p>
+    <p>
+      Проверьте ваше интернет-соединение и попробуйте снова.
+    </p>
+    <button onclick="window.location.reload()">Попробовать снова</button>
+  </div>
+</body>
+</html>

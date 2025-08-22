@@ -21,7 +21,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="./favicons/favicon-192.png" />
   <link rel="manifest" href="./site.webmanifest" />
   <meta name="theme-color" content="#2563eb" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://binaries.soliditylang.org; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.etherscan.io https://api.bscscan.com https://api-testnet.bscscan.com https://bsc-dataseed.binance.org https://data-seed-prebsc-1-s1.binance.org:8545 https://rpc.ankr.com https://rpc.sepolia.org https://binaries.soliditylang.org; font-src 'self'; form-action 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests"> 
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net https://binaries.soliditylang.org; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.etherscan.io https://api.bscscan.com https://api-testnet.bscscan.com https://bsc-dataseed.binance.org https://data-seed-prebsc-1-s1.binance.org:8545 https://rpc.ankr.com https://rpc.sepolia.org https://binaries.soliditylang.org wss://* https://*; font-src 'self'; form-action 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests"> 
   <!-- Ethers.js (UMD) для работы с кошельком -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js" integrity="sha384-3R5I9P2Y5xR0lU1YQ7i1eX0t6fjJm6C6LkQtcVfMfm8p4A4J6+1mAvGbyV6H8d4Y" crossorigin="anonymous"></script>
 </head>
@@ -116,6 +116,8 @@
           <button id="btn-save-project" type="button" disabled>Сохранить проект</button>
           <button id="btn-list-projects" type="button">Список проектов</button>
           <button id="btn-load-project" type="button">Загрузить (ввести адрес)</button>
+          <button id="download-abi-btn" type="button" disabled>ABI</button>
+          <button id="download-bytecode-btn" type="button" disabled>Bytecode</button>
           <button id="verify-btn-manage" type="button" disabled>Верифицировать</button>
           <button id="verify-cancel-btn" type="button" disabled>Отмена</button>
         </div>
@@ -219,30 +221,6 @@
   <script defer src="./js/batch.js"></script>
   <script defer src="./js/app.js"></script>
   <script defer src="./js/verifier.js"></script>
-  <script defer>
-    document.addEventListener('DOMContentLoaded', ()=>{
-      const sel = document.getElementById('network-select');
-      if(sel){ sel.value = String(APP_STATE.settings.networkId||56); sel.addEventListener('change', ()=>{ APP_STATE.settings.networkId = parseInt(sel.value,10); saveSettings(); }); }
-    });
-  </script>
-  <script defer>
-    if('serviceWorker' in navigator){
-      window.addEventListener('load', ()=>{
-        navigator.serviceWorker.register('./sw.js').then(reg=>{
-          reg.addEventListener('updatefound', ()=>{
-            const nw = reg.installing; if(!nw) return;
-            nw.addEventListener('statechange', ()=>{
-              if(nw.state==='installed' && navigator.serviceWorker.controller){
-                if(confirm('Доступна новая версия. Обновить сейчас?')){
-                  reg.waiting && reg.waiting.postMessage('skipWaiting');
-                  setTimeout(()=>location.reload(),500);
-                }
-              }
-            });
-          });
-        }).catch(e=>console.error('SW register fail', e));
-      });
-    }
-  </script>
+  <script defer src="./js/init.js"></script>
 </body>
 </html>
