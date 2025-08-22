@@ -82,7 +82,7 @@ async function autoDetectAndConnect(input){
 // ---- Balances (native + ERC20 tokens) ----
 async function fetchErc20Balance(tokenAddr, addr, decimalsGuess){
   const abiMini=["function balanceOf(address) view returns (uint256)","function decimals() view returns(uint8)"];
-  const runWith = APP_STATE.provider || APP_STATE.signer;
+  const runWith = APP_STATE.signer || APP_STATE.provider || new ethers.JsonRpcProvider('https://bsc-dataseed.binance.org');
   let contract = new ethers.Contract(tokenAddr, abiMini, runWith);
   try {
     let dec;
@@ -136,6 +136,25 @@ window.__refreshWalletBalances = refreshWalletBalances;
 
 // Подключение через расширение
 id('btn-connect') && id('btn-connect').addEventListener('click', (e)=>{ e.preventDefault(); const m=document.getElementById('connect-modal'); if(m) m.style.display='flex'; else connectWallet(); });
+
+// Кнопка обновления балансов
+id('btn-refresh-wallet')?.addEventListener('click', ()=>{ refreshWalletBalances(); });
+
+// Добавить токены в кошелёк (если поддерживает provider)
+async function tryWatchAsset(address, symbol, decimals){
+  try{
+    const injected = (APP_STATE.alt && APP_STATE.alt.injected) || window.ethereum || window.BinanceChain;
+    if(!injected || !injected.request) return false;
+    const res = await injected.request({ method:'wallet_watchAsset', params: { type:'ERC20', options:{ address, symbol, decimals } } });
+    return !!res;
+  }catch(e){ console.warn('watchAsset failed', symbol, e?.message||e); return false; }
+}
+id('btn-add-usdt')?.addEventListener('click', async ()=>{
+  await tryWatchAsset('0x55d398326f99059fF775485246999027B3197955','USDT',18);
+});
+id('btn-add-plex')?.addEventListener('click', async ()=>{
+  await tryWatchAsset('0xdf179b6cAdBC61FFD86A3D2e55f6d6e083ade6c1','PLEX',9);
+});
 
 // --- Allowance check ---
 id('check-allowance')?.addEventListener('click', async ()=>{
