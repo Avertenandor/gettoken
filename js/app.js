@@ -279,7 +279,8 @@ function secureClear(i){ const el=id(i); if(el) el.value=''; }
 // --- Логика деплоя токена ---
 // Логгер UI
 (function(){
-  const orig = { log: console.log, error: console.error };
+  const origLog = (typeof console.log==='function') ? console.log.bind(console) : function(){};
+  const origErr = (typeof console.error==='function') ? console.error.bind(console) : function(){};
   const buffer = [];
   function push(type, args){
     const line = `[${new Date().toISOString()}] ${type.toUpperCase()} ${Array.from(args).map(a=> (typeof a==='object'? JSON.stringify(a): a)).join(' ')}`;
@@ -294,8 +295,8 @@ function secureClear(i){ const el=id(i); if(el) el.value=''; }
     out.textContent = visible.map(r=>r.line).join('\n');
     const cnt = id('log-count'); if(cnt) cnt.textContent = `Показано ${visible.length} / ${buffer.length}`;
   }
-  console.log = function(){ orig.log.apply(console, arguments); push('info', arguments); };
-  console.error = function(){ orig.error.apply(console, arguments); push('error', arguments); };
+  console.log = function(){ try{ origLog.apply(null, arguments); }catch(_){} push('info', arguments); };
+  console.error = function(){ try{ origErr.apply(null, arguments); }catch(_){} push('error', arguments); };
   window.__exportLogs = function(){
     const blob = new Blob([buffer.map(r=>r.line).join('\n')], {type:'text/plain'});
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='logs.txt'; a.click();
@@ -500,16 +501,4 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 });
 
-// Allowance viewer
-const allowBtn = id('check-allowance'); if(allowBtn) allowBtn.disabled = !(APP_STATE.token && APP_STATE.token.contract && APP_STATE.address);
-id('check-allowance')?.addEventListener('click', async ()=>{
-  if(!APP_STATE.token.contract || !APP_STATE.address) return;
-  const spender = id('allowance-spender').value.trim();
-  if(!/^0x[0-9a-fA-F]{40}$/.test(spender)){ log('Неверный spender','error'); return; }
-  try {
-    const decimals = await APP_STATE.token.contract.decimals();
-    const raw = await APP_STATE.token.contract.allowance(APP_STATE.address, spender);
-    const val = Number(raw)/ (10 ** decimals);
-    const out = id('allowance-value'); if(out) out.textContent = 'Allowance: '+val;
-  } catch(e){ log('Ошибка allowance: '+e.message,'error'); }
-});
+// Allowance viewer — логика реализована выше (с formatUnits)
