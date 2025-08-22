@@ -355,10 +355,15 @@ id('token-form')?.addEventListener('submit', async (e)=>{
   const initialSupply = supply * pow;
     // Оценка газа
     let gasEstimate, feeData; 
-    try { gasEstimate = await factory.signer.estimateGas(factory.getDeployTransaction(initialSupply)); } catch(e){ gasEstimate = null; }
-    try { feeData = await factory.signer.provider.getFeeData(); } catch(e){ feeData = {}; }
-    const gasPrice = feeData.gasPrice || feeData.maxFeePerGas || 0n;
-  const costNative = gasEstimate && gasPrice ? Number(gasEstimate * gasPrice) / 1e18 : null;
+    try {
+      // ethers v6: getDeployTransaction возвращает объект транзакции, но signer.estimateGas ожидает правильные поля
+      const txReq = await factory.getDeployTransaction(initialSupply);
+      if(factory.signer && factory.signer.estimateGas){ gasEstimate = await factory.signer.estimateGas(txReq); }
+      else { gasEstimate = null; }
+    } catch(e){ gasEstimate = null; }
+    try { feeData = (factory.signer && factory.signer.provider && factory.signer.provider.getFeeData) ? await factory.signer.provider.getFeeData() : {}; } catch(e){ feeData = {}; }
+    const gasPrice = (feeData && (feeData.gasPrice || feeData.maxFeePerGas)) ? (feeData.gasPrice || feeData.maxFeePerGas) : 0n;
+  const costNative = (gasEstimate && gasPrice) ? Number(gasEstimate * gasPrice) / 1e18 : null;
   const nativeSym = getNativeSymbol(APP_STATE.network);
   if(!confirm(`Подтвердите деплой:\nИмя: ${name}\nСимвол: ${symbol}\nDecimals: ${decimals}\nSupply (читаемый): ${supply}\nSupply (raw): ${initialSupply}\nОценка газа: ${gasEstimate || '—'}\nОжидаемая стоимость (${nativeSym}): ${costNative? costNative.toFixed(6):'—'}`)) { if(status) status.textContent='Отменено пользователем'; return; }
     if(status) status.textContent = 'Деплой...';

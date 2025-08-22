@@ -38,9 +38,10 @@
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
   <!-- Полифил для process/global под некоторые UMD-бандлы (WalletConnect) -->
   <script src="./js/shims.js"></script>
+  <!-- Защита от встраивания во фрейм (без inline, для CSP) -->
+  <script src="./js/csp-guard.js"></script>
 </head>
 <body>
-  <script>if(top!==self){ try{ top.location = self.location; }catch(_){ window.open(self.location,'_top'); } }</script>
   <header>
     <h1>Печать монет <span id="net-status" class="status-badge sb-disconnected">Не подключён</span></h1>
     <nav>
