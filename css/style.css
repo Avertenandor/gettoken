@@ -82,6 +82,8 @@ footer{background:#181c22;padding:8px 16px;text-align:center}
 .mono {
   font-family: 'Courier New', monospace;
   font-size: 13px;
+  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 
 /* Loading spinner */
@@ -156,4 +158,25 @@ button:active:not(:disabled) {
   .connect-options li { margin-bottom: 12px; }
   button, input, textarea, select { font-size: 15px; padding: 5px 10px; }
   h1, h2, h3 { font-size: 1.1em; }
+
+  /* Горизонтальная прокрутка меню, чтобы не прыгала верстка */
+  nav { display: flex; overflow-x: auto; gap: 6px; white-space: nowrap; padding-bottom: 2px; }
+  nav button { flex: 0 0 auto; }
+
+  /* Модалка и сетка выбора кошельков */
+  .wallet-grid { grid-template-columns: 1fr !important; }
+  .modal { max-width: 96% !important; width: 96% !important; padding: 12px !important; }
+
+  /* Ряды в столбик для удобства ввода */
+  .row { flex-direction: column; }
+
+  /* Увеличиваем кликабельность */
+  button { min-height: 40px; }
+  input, select, textarea { min-height: 38px; }
+
+  /* Таблица batch — горизонтальная прокрутка */
+  #batch-panel { overflow-x: auto; }
+
+  /* Баннер поменьше на мобиле */
+  .top-banner { font-size: 12.5px; padding: 6px 8px; }
 }
