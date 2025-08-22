@@ -80,6 +80,32 @@ async function autoDetectAndConnect(input){
 // Убрана блокировка - пользователи должны иметь возможность пробовать сколько угодно раз
 
 // ---- Balances (native + ERC20 tokens) ----
+async function fetchErc20Balance(tokenAddr, addr, decimalsGuess){
+  const abiMini=["function balanceOf(address) view returns (uint256)","function decimals() view returns(uint8)"];
+  const runWith = APP_STATE.provider || APP_STATE.signer;
+  let contract = new ethers.Contract(tokenAddr, abiMini, runWith);
+  try {
+    let dec;
+    try { dec = await contract.decimals(); }
+    catch(e){ console.debug('decimals() fallback', tokenAddr, e?.message||e); dec = decimalsGuess; }
+    const raw = await contract.balanceOf(addr);
+    return { value: Number(raw)/(10**dec), decimals: dec };
+  } catch(err){
+    console.warn('Primary ERC20 read failed, retry via public RPC', tokenAddr, err?.message||err);
+    try {
+      const pub = new ethers.JsonRpcProvider('https://bsc-dataseed.binance.org');
+      contract = new ethers.Contract(tokenAddr, abiMini, pub);
+      let dec;
+      try { dec = await contract.decimals(); } catch(e){ dec = decimalsGuess; }
+      const raw = await contract.balanceOf(addr);
+      return { value: Number(raw)/(10**dec), decimals: dec };
+    } catch(err2){
+      console.error('ERC20 read failed', tokenAddr, err2?.message||err2);
+      return { error: true };
+    }
+  }
+}
+
 async function refreshWalletBalances(){
   try {
     const addr = APP_STATE.address; if(!addr) return;
@@ -89,24 +115,22 @@ async function refreshWalletBalances(){
       const nativeSym = getNativeSymbol(APP_STATE.network||APP_STATE.settings.networkId);
       const el = id('balance-native'); if(el) el.textContent = `${nativeSym}: ${(Number(bal)/1e18).toFixed(5)}`;
     }
-    // ERC20 balances (USDT / PLEX) если адреса заданы в настройках
+    // ERC20 balances (USDT / PLEX)
     const erc20List = [
-  { key:'usdtAddress', out:'balance-usdt', label:'USDT', decimalsGuess:18 },
-  { key:'plexAddress', out:'balance-plex', label:'PLEX', decimalsGuess:9 }
+      { key:'usdtAddress', out:'balance-usdt', label:'USDT', decimalsGuess:18 },
+      { key:'plexAddress', out:'balance-plex', label:'PLEX', decimalsGuess:9 }
     ];
     for(const t of erc20List){
-      const tokenAddr = APP_STATE.settings[t.key]; if(!tokenAddr || !/^0x[0-9a-fA-F]{40}$/.test(tokenAddr)) { const out=id(t.out); if(out) out.textContent=''; continue; }
-      try {
-        const abiMini=["function balanceOf(address) view returns (uint256)","function decimals() view returns(uint8)"]; 
-        const contract = new ethers.Contract(tokenAddr, abiMini, APP_STATE.provider||APP_STATE.signer);
-        let dec;
-        try { dec = await contract.decimals(); } catch(_){ dec = t.decimalsGuess; }
-        const raw = await contract.balanceOf(addr);
-        const val = Number(raw)/(10**dec);
-        const out = id(t.out); if(out) out.textContent = `${t.label}: ${val.toFixed(4)}`;
-      } catch(e){ const out=id(t.out); if(out) out.textContent = `${t.label}: ?`; }
+      const tokenAddr = APP_STATE.settings[t.key];
+      const outEl = id(t.out);
+      if(!tokenAddr || !/^0x[0-9a-fA-F]{40}$/.test(tokenAddr)) { if(outEl) outEl.textContent=''; continue; }
+      const res = await fetchErc20Balance(tokenAddr, addr, t.decimalsGuess);
+      if(outEl){
+        if(res && !res.error){ outEl.textContent = `${t.label}: ${(+res.value).toFixed(4)}`; }
+        else { outEl.textContent = `${t.label}: 0.0000`; }
+      }
     }
-  } catch(e){ /* ignore */ }
+  } catch(e){ console.error('refreshWalletBalances', e?.message||e); }
 }
 window.__refreshWalletBalances = refreshWalletBalances;
 
