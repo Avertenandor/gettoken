@@ -407,6 +407,7 @@ id('clear-storage')?.addEventListener('click', ()=>{ localStorage.clear(); __toa
 document.addEventListener('DOMContentLoaded', ()=>{ 
   if(id('rpc-url')) id('rpc-url').value = APP_STATE.settings.rpcUrl; 
   if(id('api-key')) id('api-key').value = APP_STATE.settings.apiKey; 
+  if(id('wc-project-id')){ APP_STATE.settings.wcProjectId = localStorage.getItem('wcProjectId')||''; id('wc-project-id').value = APP_STATE.settings.wcProjectId; }
   if(id('usdt-address')) id('usdt-address').value = APP_STATE.settings.usdtAddress; 
   if(id('plex-address')) id('plex-address').value = APP_STATE.settings.plexAddress; 
   // Разрешение risky-модулей (сид/PK)

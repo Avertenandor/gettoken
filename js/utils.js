@@ -209,6 +209,8 @@ function saveSettings(){
 	if(APP_STATE.settings.networkId!=null) localStorage.setItem('networkId', String(APP_STATE.settings.networkId));
 	if(APP_STATE.settings.usdtAddress) localStorage.setItem('usdtAddress', APP_STATE.settings.usdtAddress);
 	if(APP_STATE.settings.plexAddress) localStorage.setItem('plexAddress', APP_STATE.settings.plexAddress);
+	const wcInput = document.getElementById('wc-project-id');
+	if(wcInput){ APP_STATE.settings.wcProjectId = wcInput.value.trim(); if(APP_STATE.settings.wcProjectId) localStorage.setItem('wcProjectId', APP_STATE.settings.wcProjectId); }
 }
 
 async function fetchTokenBalance(){
