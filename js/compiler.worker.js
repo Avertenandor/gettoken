@@ -13,25 +13,52 @@ function loadSolc(version = 'v0.8.24+commit.e11b9ed9') {
       self.Module = {
         print: function(){},
         printErr: function(){},
-        locateFile: function(path){ return `https://binaries.soliditylang.org/bin/${path}`; }
+        locateFile: function(path){ return `https://binaries.soliditylang.org/bin/${path}`; },
+        // Дополнительные настройки для стабильности Emscripten
+        noInitialRun: true,
+        noExitRuntime: true,
+        ENVIRONMENT: 'WORKER'
       };
+      
+      // Загружаем solc
       importScripts(`https://binaries.soliditylang.org/bin/soljson-${version}.js`);
-      solc = self.Module;
+      
+      // Проверяем загрузку
+      if (typeof Module === 'undefined' || !Module) {
+        throw new Error('Module не определен после загрузки solc');
+      }
+      
+      solc = Module;
+      
+      // Ждем инициализации Runtime если нужно
+      if (solc.calledRun === false && typeof solc.run === 'function') {
+        solc.run();
+      }
+      
       if (!solc || !solc.cwrap) {
         reject(new Error('Ошибка инициализации solc-js (cwrap недоступен)'));
         return;
       }
+      
       compileStandardWrapper = solc.cwrap('compileStandard','string',['string']);
       if (typeof compileStandardWrapper !== 'function') {
         reject(new Error('compileStandard недоступен'));
         return;
       }
+      
       solcLoaded = true;
       resolve();
-    } catch (e) { reject(e); }
+    } catch (e) { 
+      console.error('LoadSolc error:', e);
+      reject(e); 
+    }
   }).catch(async (e)=>{
     // Авто-фоллбек на более свежую версию, если указанная не загрузилась
+    console.warn('Fallback to newer solc version due to:', e.message);
     if(version !== 'v0.8.26+commit.8a97fa17'){
+      solcLoaded = false;
+      compileStandardWrapper = null;
+      self.Module = undefined;
       return loadSolc('v0.8.26+commit.8a97fa17');
     }
     throw e;
