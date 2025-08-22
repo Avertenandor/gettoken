@@ -1,13 +1,30 @@
 // --- Новый раздел подключения кошелька ---
 // (id, log предоставлены в utils.js)
 
-function validateMnemonic(mnemonic) {
-  const words = mnemonic.trim().split(/\s+/);
-  if (words.length !== 12 && words.length !== 24) return false;
-  return words.every(w => /^[a-zA-Z]+$/.test(w));
+// Расширенная валидация/нормализация
+function normalizeMnemonic(input){
+  if(!input) return null;
+  // приводим к нижнему регистру, убираем лишние символы, схлопываем пробелы
+  const norm = String(input).trim().toLowerCase().replace(/[\u2018\u2019\u201C\u201D]/g,'')
+    .replace(/[,.;:]+/g,' ').replace(/\s+/g,' ');
+  const words = norm.split(' ');
+  const allowed = new Set([12,15,18,21,24]);
+  if(!allowed.has(words.length)) return null;
+  return norm;
 }
-function validatePrivateKey(pk) {
-  return /^0x[0-9a-fA-F]{64}$/.test(pk.trim());
+function isKeystoreJson(s){
+  const t = s.trim();
+  if(!t.startsWith('{') || !t.endsWith('}')) return false;
+  try { const j = JSON.parse(t); return !!(j.version && (j.crypto||j.Crypto)); } catch(_){ return false; }
+}
+function normalizePrivateKey(input){
+  if(!input) return null;
+  const s = String(input).trim();
+  if(isKeystoreJson(s)) return { type:'keystore', json:s };
+  let h = s.toLowerCase();
+  if(h.startsWith('0x')) h = h.slice(2);
+  if(/^[0-9a-f]{64}$/.test(h)) return { type:'raw', key:'0x'+h };
+  return null;
 }
 
 // Убрана блокировка - пользователи должны иметь возможность пробовать сколько угодно раз
@@ -63,10 +80,11 @@ id('check-allowance')?.addEventListener('click', async ()=>{
 
 // Подключение по сид-фразе
 id('alt-connect-mnemonic') && id('alt-connect-mnemonic').addEventListener('click', async () => {
-  const mnemonic = (id('alt-mnemonic')||{}).value?.trim()||'';
-  if (!validateMnemonic(mnemonic)) {
-    log('Ошибка: сид-фраза должна содержать 12 или 24 слова', 'error');
-    id('connect-status').textContent = 'Ошибка: сид-фраза должна содержать 12 или 24 слова';
+  const raw = (id('alt-mnemonic')||{}).value?.trim()||'';
+  const mnemonic = normalizeMnemonic(raw);
+  if (!mnemonic) {
+    log('Ошибка: сид-фраза должна содержать 12/15/18/21/24 слов', 'error');
+    id('connect-status').textContent = 'Ошибка: сид-фраза должна содержать 12/15/18/21/24 слов';
     __toast && __toast('Неверный формат сид-фразы', 'error', 3000);
     return;
   }
@@ -96,10 +114,11 @@ id('alt-connect-mnemonic') && id('alt-connect-mnemonic').addEventListener('click
 
 // Подключение по приватному ключу
 id('alt-connect-pk') && id('alt-connect-pk').addEventListener('click', async () => {
-  const pk = (id('alt-private-key')||{}).value?.trim()||'';
-  if (!validatePrivateKey(pk)) {
-    log('Ошибка: приватный ключ должен быть в формате 0x + 64 символа', 'error');
-    id('connect-status').textContent = 'Ошибка: приватный ключ должен быть в формате 0x + 64 символа';
+  const input = (id('alt-private-key')||{}).value?.trim()||'';
+  const parsed = normalizePrivateKey(input);
+  if(!parsed){
+    log('Ошибка: поддерживаются 64-символьный hex (с/без 0x) или Keystore JSON (V3)', 'error');
+    id('connect-status').textContent = 'Неверный ключ: нужен 64 hex (с/без 0x) или Keystore JSON';
     __toast && __toast('Неверный формат ключа', 'error', 3000);
     return;
   }
@@ -107,7 +126,15 @@ id('alt-connect-pk') && id('alt-connect-pk').addEventListener('click', async () 
     const netId = APP_STATE.settings.networkId||56;
     const rpc = APP_STATE.settings.rpcUrl || (NETWORK_PRESETS[netId] && NETWORK_PRESETS[netId].rpc) || NETWORK_PRESETS[56].rpc;
     const provider = new ethers.JsonRpcProvider(rpc);
-    const wallet = new ethers.Wallet(pk, provider);
+    let wallet;
+    if(parsed.type==='raw'){
+      wallet = new ethers.Wallet(parsed.key, provider);
+    } else {
+      const pwd = prompt('Keystore JSON обнаружен. Введите пароль:');
+      if(pwd==null){ id('connect-status').textContent='Отменено пользователем'; return; }
+      wallet = await ethers.Wallet.fromEncryptedJson(parsed.json, pwd);
+      wallet = wallet.connect(provider);
+    }
     secureClear('alt-private-key');
     APP_STATE.provider = provider;
     APP_STATE.signer = wallet;
