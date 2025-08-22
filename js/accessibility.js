@@ -6,8 +6,12 @@
   // Крупный шрифт: запоминаем в localStorage
   const KEY = 'pm_big_font';
   function applyFont(big){
-    root.style.setProperty('--base-font-size', big ? '18px' : '16px');
-    document.body.classList.toggle('big-font', !!big);
+  root.style.setProperty('--base-font-size', big ? '18px' : '16px');
+  document.body.classList.toggle('big-font', !!big);
+  // Доп. масштаб для элементов с фиксированными px
+  document.body.style.transformOrigin = 'top left';
+  document.body.style.transform = big ? 'scale(1.07)' : 'none';
+  if(btnFont){ btnFont.textContent = big ? 'Обычный шрифт' : 'Крупный шрифт'; }
   }
   try{ applyFont(localStorage.getItem(KEY)==='1'); }catch(_){/* noop */}
 

@@ -1,6 +1,22 @@
 :root{--base-font-size:16px}
 body{font-family:system-ui,Arial,sans-serif;margin:0;display:flex;flex-direction:column;min-height:100vh;background:#0f1115;color:#eee;font-size:var(--base-font-size)}
 .big-font{--base-font-size:18px}
+
+/* Big font overrides for key UI elements */
+.big-font h1 { font-size: 1.6em; }
+.big-font h2 { font-size: 1.35em; }
+.big-font h3 { font-size: 1.2em; }
+.big-font button,
+.big-font input,
+.big-font textarea,
+.big-font select { font-size: 18px; }
+.big-font button { padding: 8px 16px; }
+.big-font .muted { font-size: 15px; }
+.big-font .section,
+.big-font .connect-options { font-size: 17px; }
+.big-font .wallet-btn { font-size: 16px; }
+.big-font .status-badge { font-size: 13px; }
+.big-font .mono { font-size: 14px; }
 header{background:#181c22;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:16px}
 nav button{margin-right:6px}
 .top-banner{width:100%;margin-top:8px;background:#0b3b1b;color:#d1fae5;border:1px solid #065f46;border-radius:6px;padding:8px 10px;font-size:13px;line-height:1.35}
@@ -9,6 +25,7 @@ button{cursor:pointer;background:#2563eb;border:none;color:#fff;padding:6px 14px
 button:hover:not(:disabled){background:#1d4ed8}
 button:disabled{background:#444;cursor:not-allowed}
 main{flex:1;padding:16px;max-width:1300px;width:100%;margin:0 auto}
+.big-font main{max-width:1360px}
 .view{display:none}
 .view.active{display:block}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-bottom:12px}
@@ -24,6 +41,7 @@ textarea{min-height:120px}
 #batch-table th,#batch-table td{border:1px solid #333;padding:4px 6px;text-align:left}
 #log-output{background:#101317;padding:10px;min-height:240px;font-size:12px;overflow:auto;white-space:pre-wrap}
 footer{background:#181c22;padding:8px 16px;text-align:center}
+.big-font footer{font-size:15px}
 #deploy-status,#settings-status,#batch-progress{margin-top:10px;font-size:13px;white-space:pre-line}
 /* Toast */
 #toast-container{position:fixed;top:12px;right:12px;display:flex;flex-direction:column;gap:8px;z-index:9999}
