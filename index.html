@@ -49,7 +49,9 @@
       <button data-view="manage">Токен</button>
   <button data-view="logs">Логи</button>
   <button data-view="batch">Batch</button>
-      <button data-view="settings">Настройки</button>
+  <button data-view="settings">Настройки</button>
+  <button id="btn-guide" type="button" title="Пошаговая инструкция">Инструкция</button>
+  <button id="btn-font" type="button" title="Крупный шрифт">Крупный шрифт</button>
     </nav>
     </nav>
     <div class="top-banner" role="note" aria-live="polite">
@@ -226,15 +228,26 @@
       </div>
     </section>
     <section id="usage-guide" class="section">
-      <h2>Как это работает</h2>
-      <ol>
-        <li><b>Подключите кошелёк любым удобным способом:</b> сид-фраза, приватный ключ или расширение браузера.</li>
-        <li>Заполните 4 поля (название, символ, decimals, количество) и нажмите «Создать токен».</li>
-        <li>Токен создаётся мгновенно. Скопируйте адрес — готово!</li>
-        <li>Во вкладке «Токен» можно отправлять монеты и управлять allowance.</li>
-        <li>Верификация на BscScan/Etherscan одной кнопкой (нужен API ключ в настройках).</li>
+      <h2>Как создать монету — пошагово и просто</h2>
+      <ol style="font-size:16px; line-height:1.6; padding-left:22px;">
+        <li><b>Подготовьтесь.</b> Для сети BSC понадобится немного BNB на комиссию. Держите под рукой кошелёк или сид‑фразу/приватный ключ.</li>
+        <li><b>Нажмите «Подключить кошелёк».</b> Выберите способ: расширение (MetaMask/OKX/Trust), QR (WalletConnect) или временно сид/ключ (данные не сохраняются и остаются в вашем браузере).</li>
+        <li><b>Заполните 4 поля:</b>
+          <ul>
+            <li>Название (например: «Мой Токен»)</li>
+            <li>Символ (например: «MYT»)</li>
+            <li>Десятичность — оставьте 18, если не уверены</li>
+            <li>Количество монет (например: 1000000)</li>
+          </ul>
+        </li>
+        <li><b>Нажмите «Создать токен».</b> Подтвердите в кошельке. Через несколько секунд вы увидите адрес токена.</li>
+        <li><b>Обязательно сохраните данные.</b> Адрес контракта, ABI/Bytecode и «паспорт проекта». Не обновляйте страницу, пока всё не сохраните.</li>
+        <li><b>Добавьте монету в кошелёк.</b> Во вкладке «Токен» нажмите «Add to Wallet», чтобы монета появилась в вашем кошельке.</li>
+        <li><b>Дальнейшие действия.</b> Во вкладке «Токен» можно отправлять монеты, выдавать разрешения (Allowance) и проверять баланс.</li>
+        <li><b>Если что‑то не получилось.</b> Убедитесь, что на кошельке есть BNB на комиссию, выбрана сеть BSC (56) и страница не перезагружалась до сохранения данных.</li>
       </ol>
-      <p class="muted"><b>100% локально.</b> Никакие данные не отправляются на сервер. Приватные ключи используются только в памяти браузера и очищаются после использования.</p>
+      <p class="muted"><b>Совет:</b> нажмите вверху «Крупный шрифт» — так текст и кнопки станут больше и нагляднее.</p>
+      <p class="muted"><b>Безопасность:</b> сайт работает без сервера и напрямую с блокчейном. Все действия видите только вы, данные не отправляются на сторонние сервисы.</p>
     </section>
   </main>
   <footer>
@@ -251,6 +264,7 @@
   <!-- WalletConnect Ethereum Provider (UMD) for QR connect -->
   <script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.11.1/dist/index.umd.js"></script>
   <script defer src="./js/connectors.js"></script>
+  <script defer src="./js/accessibility.js"></script>
   <script defer src="./js/init.js"></script>
   <style>
     .modal-backdrop{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;z-index:1000}

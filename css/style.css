@@ -1,4 +1,6 @@
-body{font-family:system-ui,Arial,sans-serif;margin:0;display:flex;flex-direction:column;min-height:100vh;background:#0f1115;color:#eee}
+:root{--base-font-size:16px}
+body{font-family:system-ui,Arial,sans-serif;margin:0;display:flex;flex-direction:column;min-height:100vh;background:#0f1115;color:#eee;font-size:var(--base-font-size)}
+.big-font{--base-font-size:18px}
 header{background:#181c22;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:16px}
 nav button{margin-right:6px}
 .top-banner{width:100%;margin-top:8px;background:#0b3b1b;color:#d1fae5;border:1px solid #065f46;border-radius:6px;padding:8px 10px;font-size:13px;line-height:1.35}
