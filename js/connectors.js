@@ -50,9 +50,9 @@
       if(type==='walletconnect'){
         const projectId = (window.APP_STATE?.settings?.wcProjectId) || document.getElementById('wc-project-id')?.value?.trim();
         if(!projectId){ const st=id('connect-status'); if(st) st.textContent='Укажите WalletConnect Project ID в настройках'; return; }
-        const mod = await import('https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.11.1/dist/index.min.js');
-        const EthereumProvider = mod?.EthereumProvider || mod.default;
-        const provider = await EthereumProvider.init({ projectId, showQrModal: true, chains: [window.APP_STATE?.settings?.networkId||56] });
+  const EthereumProvider = window.WalletConnectEthereumProvider || window.EthereumProvider;
+  if(!EthereumProvider){ const st=id('connect-status'); if(st) st.textContent='WalletConnect провайдер не загружен'; return; }
+  const provider = await EthereumProvider.init({ projectId, showQrModal: true, chains: [56] });
         await provider.enable();
         const bp = new ethers.BrowserProvider(provider);
         const signer = await bp.getSigner();
