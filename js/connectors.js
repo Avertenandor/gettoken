@@ -42,7 +42,15 @@
         const st = id('connect-status'); if(st) st.textContent='Кошелёк подключён (WalletConnect)';
       } else {
         const map = { metamask:'metamask', okx:'okx', trust:'trust', binance:'binance', coinbase:'coinbase' };
-        await window.connectWallet(map[type] || undefined);
+        try{
+          await window.connectWallet(map[type] || undefined);
+        }catch(e){
+          if((map[type]||'')==='binance'){
+            const st=id('connect-status');
+            if(st){ st.textContent='Binance Wallet может работать нестабильно в этом браузере. Рекомендуем MetaMask / OKX / Trust или QR (WalletConnect).'; }
+          }
+          throw e;
+        }
       }
       closeModal();
     } catch(e){

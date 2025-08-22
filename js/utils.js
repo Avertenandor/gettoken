@@ -242,9 +242,10 @@ function saveSettings(){
 async function fetchTokenBalance(){
 	if(!APP_STATE.token.contract || !APP_STATE.address) return null;
 	try {
-		const decimals = await APP_STATE.token.contract.decimals();
+		const decimals = Number(await APP_STATE.token.contract.decimals());
 		const bal = await APP_STATE.token.contract.balanceOf(APP_STATE.address);
-		return Number(bal) / (10 ** decimals);
+		if(window.ethers && ethers.formatUnits) return parseFloat(ethers.formatUnits(bal, decimals));
+		return Number(bal) / Math.pow(10, decimals);
 	} catch(e){ log('Ошибка получения баланса: '+e.message,'error'); return null; }
 }
 

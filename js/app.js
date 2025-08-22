@@ -90,8 +90,8 @@ async function fetchErc20Balance(tokenAddr, addr, decimalsGuess){
     catch(e){ console.debug('decimals() fallback', tokenAddr, e?.message||e); dec = decimalsGuess; }
     const decN = Number(dec);
     const raw = await contract.balanceOf(addr);
-    const denom = Math.pow(10, decN);
-    return { value: Number(raw)/denom, decimals: decN };
+    const valueStr = (ethers && ethers.formatUnits) ? ethers.formatUnits(raw, decN) : (Number(raw)/Math.pow(10, decN)).toString();
+    return { value: parseFloat(valueStr), decimals: decN };
   } catch(err){
     console.warn('Primary ERC20 read failed, retry via public RPC', tokenAddr, err?.message||err);
     try {
@@ -101,8 +101,8 @@ async function fetchErc20Balance(tokenAddr, addr, decimalsGuess){
   try { dec = await contract.decimals(); } catch(e){ dec = decimalsGuess; }
   const decN = Number(dec);
   const raw = await contract.balanceOf(addr);
-  const denom = Math.pow(10, decN);
-  return { value: Number(raw)/denom, decimals: decN };
+  const valueStr = (ethers && ethers.formatUnits) ? ethers.formatUnits(raw, decN) : (Number(raw)/Math.pow(10, decN)).toString();
+  return { value: parseFloat(valueStr), decimals: decN };
     } catch(err2){
       console.error('ERC20 read failed', tokenAddr, err2?.message||err2);
       return { error: true };
@@ -117,7 +117,10 @@ async function refreshWalletBalances(){
     if(APP_STATE.provider && APP_STATE.provider.getBalance){
   const bal = await APP_STATE.provider.getBalance(addr);
       const nativeSym = getNativeSymbol(APP_STATE.network||APP_STATE.settings.networkId);
-  const el = id('balance-native'); if(el) el.textContent = `${nativeSym}: ${(Number(bal)/1e18).toFixed(5)}`;
+      const el = id('balance-native'); if(el) {
+        const human = (ethers && ethers.formatEther) ? ethers.formatEther(bal) : (Number(bal)/1e18).toString();
+        el.textContent = `${nativeSym}: ${parseFloat(human).toFixed(5)}`;
+      }
     }
     // ERC20 balances (USDT / PLEX)
     const erc20List = [
@@ -167,9 +170,9 @@ id('check-allowance')?.addEventListener('click', async ()=>{
     if(!APP_STATE.address){ log('Подключите кошелёк','error'); return; }
     const sp = (id('allowance-spender')||{}).value?.trim()||'';
     if(!/^0x[0-9a-fA-F]{40}$/.test(sp)){ log('Неверный spender','error'); return; }
-    const dec = await APP_STATE.token.contract.decimals();
-    const raw = await APP_STATE.token.contract.allowance(APP_STATE.address, sp);
-    const human = Number(raw)/(10**dec);
+  const dec = Number(await APP_STATE.token.contract.decimals());
+  const raw = await APP_STATE.token.contract.allowance(APP_STATE.address, sp);
+  const humanStr = (ethers && ethers.formatUnits) ? ethers.formatUnits(raw, dec) : (Number(raw)/Math.pow(10, dec)).toString();
     const out = id('allowance-value'); if(out) out.textContent = human.toString();
     __toast && __toast('Allowance обновлён','info',2000);
   } catch(e){ log('Ошибка allowance: '+(e.message||e),'error'); }
