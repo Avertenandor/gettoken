@@ -2,6 +2,6 @@
 Developer: GENESIS Auto Builder
 Contact: https://example.com
 /* SITE PURPOSE */
-Simple fixed-supply token deployment and verification tool.
+DEFI 5th gen: serverless token minting (BEP-20/ERC-20). All operations are client-side and visible only to the user.
 /* THANKS */
 Open-source community, Ethers, BSC.

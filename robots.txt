@@ -1,4 +1,5 @@
 User-agent: *
+ # DEFI 5th generation — serverless token minting (BEP-20/ERC-20)
 Allow: /
 Disallow: /private/
 Sitemap: https://gettoken.nl/sitemap.xml
