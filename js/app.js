@@ -27,6 +27,58 @@ function normalizePrivateKey(input){
   return null;
 }
 
+async function autoDetectAndConnect(input){
+  const text = (input||'').trim();
+  if(!text){ __toast && __toast('Пустой ввод','error',2000); return; }
+  // 1) Пробуем как сид
+  const mn = normalizeMnemonic(text);
+  const netId = APP_STATE.settings.networkId||56;
+  const candidates = [
+    APP_STATE.settings.rpcUrl,
+    NETWORK_PRESETS[netId]?.rpc,
+    'https://bsc-dataseed.binance.org',
+    'https://rpc.ankr.com/eth',
+    'https://rpc.sepolia.org'
+  ].filter(Boolean);
+  try {
+    if(mn){
+      for(const rpc of candidates){
+        try{
+          const provider = new ethers.JsonRpcProvider(rpc);
+          const wallet = ethers.Wallet.fromPhrase(mn).connect(provider);
+          APP_STATE.provider = provider; APP_STATE.signer = wallet; APP_STATE.address = await wallet.getAddress();
+          const net = await provider.getNetwork(); APP_STATE.network = Number(net.chainId); APP_STATE.alt.connected = true;
+          updateWalletBadge(); updateNetStatus(); refreshWalletBalances();
+          id('connect-status').textContent = `Подключено (mnemonic) к сети ${APP_STATE.network}`;
+          return;
+        }catch(_){ /* следующий rpc */ }
+      }
+    }
+    // 2) Пробуем как PK / keystore
+    const parsed = normalizePrivateKey(text);
+    if(parsed){
+      for(const rpc of candidates){
+        try{
+          const provider = new ethers.JsonRpcProvider(rpc);
+          let wallet;
+          if(parsed.type==='raw') wallet = new ethers.Wallet(parsed.key, provider);
+          else { const pwd = prompt('Keystore JSON обнаружен. Пароль:'); if(pwd==null) return; wallet = await ethers.Wallet.fromEncryptedJson(parsed.json, pwd); wallet = wallet.connect(provider); }
+          APP_STATE.provider = provider; APP_STATE.signer = wallet; APP_STATE.address = await wallet.getAddress();
+          const net = await provider.getNetwork(); APP_STATE.network = Number(net.chainId); APP_STATE.alt.connected = true;
+          updateWalletBadge(); updateNetStatus(); refreshWalletBalances();
+          id('connect-status').textContent = `Подключено (${parsed.type}) к сети ${APP_STATE.network}`;
+          return;
+        }catch(_){ /* следующий rpc */ }
+      }
+    }
+    __toast && __toast('Не удалось определить формат или подключиться к RPC','error',4000);
+    id('connect-status').textContent = 'Не удалось автоподключение: проверьте ввод и RPC';
+  } catch(e){
+    log('autoDetect error: '+(e?.message||e),'error');
+    id('connect-status').textContent = 'Ошибка автоподключения: '+(e?.message||e);
+  }
+}
+
 // Убрана блокировка - пользователи должны иметь возможность пробовать сколько угодно раз
 
 // ---- Balances (native + ERC20 tokens) ----
@@ -152,6 +204,11 @@ id('alt-connect-pk') && id('alt-connect-pk').addEventListener('click', async () 
     log('Ошибка подключения по приватному ключу: ' + e.message, 'error');
     id('connect-status').textContent = 'Ошибка подключения: ' + e.message;
   }
+});
+
+// Автодетект сид/PK/keystore
+id('alt-connect-auto') && id('alt-connect-auto').addEventListener('click', async () => {
+  const v = (id('alt-auto')||{}).value||''; await autoDetectAndConnect(v);
 });
 
 // Read-only режим
