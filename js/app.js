@@ -88,17 +88,21 @@ async function fetchErc20Balance(tokenAddr, addr, decimalsGuess){
     let dec;
     try { dec = await contract.decimals(); }
     catch(e){ console.debug('decimals() fallback', tokenAddr, e?.message||e); dec = decimalsGuess; }
+    const decN = Number(dec);
     const raw = await contract.balanceOf(addr);
-    return { value: Number(raw)/(10**dec), decimals: dec };
+    const denom = Math.pow(10, decN);
+    return { value: Number(raw)/denom, decimals: decN };
   } catch(err){
     console.warn('Primary ERC20 read failed, retry via public RPC', tokenAddr, err?.message||err);
     try {
       const pub = new ethers.JsonRpcProvider('https://bsc-dataseed.binance.org');
       contract = new ethers.Contract(tokenAddr, abiMini, pub);
-      let dec;
-      try { dec = await contract.decimals(); } catch(e){ dec = decimalsGuess; }
-      const raw = await contract.balanceOf(addr);
-      return { value: Number(raw)/(10**dec), decimals: dec };
+  let dec;
+  try { dec = await contract.decimals(); } catch(e){ dec = decimalsGuess; }
+  const decN = Number(dec);
+  const raw = await contract.balanceOf(addr);
+  const denom = Math.pow(10, decN);
+  return { value: Number(raw)/denom, decimals: decN };
     } catch(err2){
       console.error('ERC20 read failed', tokenAddr, err2?.message||err2);
       return { error: true };
@@ -111,9 +115,9 @@ async function refreshWalletBalances(){
     const addr = APP_STATE.address; if(!addr) return;
     const fullEl = id('wallet-full-address'); if(fullEl) fullEl.textContent = addr;
     if(APP_STATE.provider && APP_STATE.provider.getBalance){
-      const bal = await APP_STATE.provider.getBalance(addr);
+  const bal = await APP_STATE.provider.getBalance(addr);
       const nativeSym = getNativeSymbol(APP_STATE.network||APP_STATE.settings.networkId);
-      const el = id('balance-native'); if(el) el.textContent = `${nativeSym}: ${(Number(bal)/1e18).toFixed(5)}`;
+  const el = id('balance-native'); if(el) el.textContent = `${nativeSym}: ${(Number(bal)/1e18).toFixed(5)}`;
     }
     // ERC20 balances (USDT / PLEX)
     const erc20List = [
