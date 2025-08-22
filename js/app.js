@@ -295,8 +295,8 @@ function secureClear(i){ const el=id(i); if(el) el.value=''; }
     out.textContent = visible.map(r=>r.line).join('\n');
     const cnt = id('log-count'); if(cnt) cnt.textContent = `Показано ${visible.length} / ${buffer.length}`;
   }
-  console.log = function(){ try{ origLog.apply(null, arguments); }catch(_){} push('info', arguments); };
-  console.error = function(){ try{ origErr.apply(null, arguments); }catch(_){} push('error', arguments); };
+  console.log = function(){ try{ origLog(...arguments); }catch(_){} push('info', arguments); };
+  console.error = function(){ try{ origErr(...arguments); }catch(_){} push('error', arguments); };
   window.__exportLogs = function(){
     const blob = new Blob([buffer.map(r=>r.line).join('\n')], {type:'text/plain'});
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='logs.txt'; a.click();
@@ -345,7 +345,7 @@ id('token-form')?.addEventListener('submit', async (e)=>{
     w.addEventListener('message', handler);
     w.postMessage({ id:reqId, cmd:'compile', payload:{ source, optimize:true, version:'v0.8.24+commit.e11b9ed9' } });
   }).catch(e=>{ log('Ошибка компиляции: '+e.message,'error'); return null; });
-  if(!result) return;
+  if(!result || !result.abi || !result.bytecode){ log('Компилятор вернул пустой результат','error'); if(status) status.textContent='Ошибка компиляции'; return; }
   if(status) status.textContent = 'Оценка газа...';
   try {
     const factory = new ethers.ContractFactory(result.abi, result.bytecode, APP_STATE.signer);
@@ -368,7 +368,7 @@ id('token-form')?.addEventListener('submit', async (e)=>{
   const nativeSym = getNativeSymbol(APP_STATE.network);
   if(!confirm(`Подтвердите деплой:\nИмя: ${name}\nСимвол: ${symbol}\nDecimals: ${decimals}\nSupply (читаемый): ${supply}\nSupply (raw): ${initialSupply}\nОценка газа: ${gasEstimate || '—'}\nОжидаемая стоимость (${nativeSym}): ${costNative? costNative.toFixed(6):'—'}`)) { if(status) status.textContent='Отменено пользователем'; return; }
     if(status) status.textContent = 'Деплой...';
-    const contract = await factory.deploy(initialSupply);
+  const contract = await factory.deploy(initialSupply);
     const deployTx = contract.deploymentTransaction();
     log('Deploy tx: '+deployTx.hash);
   const explorerBase = (typeof getExplorerBase==='function') ? getExplorerBase(APP_STATE.network) : '';
