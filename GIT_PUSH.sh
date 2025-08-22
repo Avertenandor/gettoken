@@ -1,0 +1,31 @@
+#!/bin/bash
+# GIT PUSH КОМАНДЫ ДЛЯ ЗАГРУЗКИ НА GITHUB
+# Выполните эти команды по порядку в папке проекта
+
+echo "=== ЗАГРУЗКА ПРОЕКТА НА GITHUB ==="
+echo ""
+echo "Шаг 1: Инициализация Git (если еще не сделано)"
+echo "$ git init"
+echo ""
+echo "Шаг 2: Добавление всех файлов"
+echo "$ git add ."
+echo ""
+echo "Шаг 3: Создание коммита"
+echo '$ git commit -m "Печать монет v2.0 - Простое создание токенов для всех"'
+echo ""
+echo "Шаг 4: Добавление удаленного репозитория (замените USERNAME на ваш)"
+echo "$ git remote add origin https://github.com/USERNAME/gettoken.git"
+echo ""
+echo "Шаг 5: Отправка на GitHub"
+echo "$ git push -u origin main"
+echo ""
+echo "=== ИЛИ ОДНОЙ КОМАНДОЙ (если репозиторий уже создан) ==="
+echo ""
+echo "git add . && git commit -m 'Update v2.0' && git push"
+echo ""
+echo "=== ПОСЛЕ ПУША ==="
+echo "1. Откройте https://github.com/USERNAME/gettoken/settings/pages"
+echo "2. Выберите Source: Deploy from branch"
+echo "3. Выберите Branch: main"
+echo "4. Нажмите Save"
+echo "5. Сайт будет доступен через 2-5 минут"

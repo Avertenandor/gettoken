@@ -50,16 +50,16 @@
             <span id="network"></span>
             <div class="hint">Рекомендуется для большинства пользователей. Безопасно, не требует передачи секретов.</div>
           </li>
-          <li id="risk-modes-block" style="display:list-item;"><details open><summary><b>Сид / Приватный ключ (НЕ РЕКОМЕНДУЕТСЯ)</b></summary>
+          <li id="risk-modes-block" style="display:list-item;"><details open><summary><b>Сид-фраза / Приватный ключ (быстрое подключение)</b></summary>
             <div style="margin-top:8px;">
-              <textarea id="alt-mnemonic" placeholder="Сид-фраза 12/24 слов" style="width:100%;min-height:60px;" aria-label="Сид фраза"></textarea>
+              <textarea id="alt-mnemonic" placeholder="Вставьте сид-фразу 12 или 24 слова" style="width:100%;min-height:60px;" aria-label="Сид фраза"></textarea>
               <button type="button" id="alt-connect-mnemonic">Подключить по сид-фразе</button>
-              <div class="hint">Только временная сид-фраза. Очищается после подключения.</div>
+              <div class="hint">Быстрое подключение для создания токенов. Данные не сохраняются.</div>
               <hr style="margin:12px 0;opacity:0.3;">
-              <input id="alt-private-key" placeholder="Приватный ключ 0x..." style="width:100%;" aria-label="Приватный ключ" type="password" />
+              <input id="alt-private-key" placeholder="Вставьте приватный ключ 0x..." style="width:100%;" aria-label="Приватный ключ" type="password" />
               <button type="button" id="toggle-pk-visibility" style="font-size:11px;">Показать</button>
               <button type="button" id="alt-connect-pk">Подключить по приватному ключу</button>
-              <div class="hint">Формат: 0x + 64 hex. Используйте временный ключ.</div>
+              <div class="hint">Формат: 0x + 64 символа. Мгновенное подключение.</div>
             </div>
           </details></li>
           <li><b>Read-only</b><br>
@@ -167,7 +167,7 @@
   <label>API Key (Etherscan V2): <input id="api-key" type="text" /></label>
   <label>USDT Address: <input id="usdt-address" type="text" placeholder="0x..." /></label>
   <label>PLEX Address: <input id="plex-address" type="text" placeholder="0x..." /></label>
-  <label style="display:block;margin-top:6px;"><input type="checkbox" id="enable-risky-modes" /> Разрешить сид / приватный ключ (я понимаю риски)</label>
+  <!-- Галочка больше не нужна - поля всегда доступны -->
   <button type="button" id="save-settings">Сохранить</button>
   <button type="button" id="clear-storage">Очистить локальные данные</button>
         <div id="settings-status" class="muted" style="margin-top:8px;" role="status" aria-live="polite"></div>
@@ -201,13 +201,13 @@
     <section id="usage-guide" class="section">
       <h2>Как это работает</h2>
       <ol>
-        <li>Подключите кошелёк (или альтернативно).</li>
-        <li>Заполните 4 поля и нажмите «Создать токен».</li>
-        <li>Скопируйте адрес — токен готов.</li>
-        <li>Во вкладке «Токен» отправляйте или управляйте allowance.</li>
-        <li>Верификация: авто (если включено) или кнопка. По сети подберётся нужный встроенный/ваш ключ.</li>
+        <li><b>Подключите кошелёк любым удобным способом:</b> сид-фраза, приватный ключ или расширение браузера.</li>
+        <li>Заполните 4 поля (название, символ, decimals, количество) и нажмите «Создать токен».</li>
+        <li>Токен создаётся мгновенно. Скопируйте адрес — готово!</li>
+        <li>Во вкладке «Токен» можно отправлять монеты и управлять allowance.</li>
+        <li>Верификация на BscScan/Etherscan одной кнопкой (нужен API ключ в настройках).</li>
       </ol>
-      <p class="muted">Фиксированный выпуск. Встроенные ключи можно заменить своими при необходимости.<br>Локально. Секреты не сохраняются.</p>
+      <p class="muted"><b>100% локально.</b> Никакие данные не отправляются на сервер. Приватные ключи используются только в памяти браузера и очищаются после использования.</p>
     </section>
   </main>
   <footer>

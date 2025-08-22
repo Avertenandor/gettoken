@@ -10,26 +10,7 @@ function validatePrivateKey(pk) {
   return /^0x[0-9a-fA-F]{64}$/.test(pk.trim());
 }
 
-// Exponential backoff визуализация
-function computeLockSeconds(attempts){
-  if(attempts<=5) return 0;
-  const extra = attempts-5; // 1 => 5s, 2 =>10s, 3=>20s cap 120s
-  return Math.min(120, 5 * (2 ** (extra-1)));
-}
-function showSecurityLock(){
-  const lockBox = id('connect-status');
-  if(!lockBox) return;
-  const attempts = Math.max(APP_STATE.security.seedAttempts, APP_STATE.security.pkAttempts);
-  const lock = computeLockSeconds(attempts);
-  if(lock>0){
-    const until = Date.now()+lock*1000;
-    const timer = setInterval(()=>{
-      const left = Math.max(0, Math.floor((until-Date.now())/1000));
-      lockBox.textContent = left>0? `Блокировка ввода секретов: ${left}s`:'Можно повторить ввод';
-      if(left===0){ clearInterval(timer); }
-    },1000);
-  }
-}
+// Убрана блокировка - пользователи должны иметь возможность пробовать сколько угодно раз
 
 // ---- Balances (native + ERC20 tokens) ----
 async function refreshWalletBalances(){
@@ -82,15 +63,13 @@ id('check-allowance')?.addEventListener('click', async ()=>{
 
 // Подключение по сид-фразе
 id('alt-connect-mnemonic') && id('alt-connect-mnemonic').addEventListener('click', async () => {
-  if(!window.__secAttempt('seed')) return;
-  showSecurityLock();
   const mnemonic = (id('alt-mnemonic')||{}).value?.trim()||'';
   if (!validateMnemonic(mnemonic)) {
-    log('Ошибка: сид-фраза должна содержать 12 или 24 слова, только латиница', 'error');
-    id('connect-status').textContent = 'Ошибка: сид-фраза должна содержать 12 или 24 слова, только латиница';
+    log('Ошибка: сид-фраза должна содержать 12 или 24 слова', 'error');
+    id('connect-status').textContent = 'Ошибка: сид-фраза должна содержать 12 или 24 слова';
+    __toast && __toast('Неверный формат сид-фразы', 'error', 3000);
     return;
   }
-  if (!confirm('Подтвердите, что вводите ВРЕМЕННУЮ сид-фразу. После подключения она будет очищена. Продолжить?')) return;
   try {
     const netId = APP_STATE.settings.networkId||56;
     const rpc = APP_STATE.settings.rpcUrl || (NETWORK_PRESETS[netId] && NETWORK_PRESETS[netId].rpc) || NETWORK_PRESETS[56].rpc;
@@ -106,7 +85,9 @@ id('alt-connect-mnemonic') && id('alt-connect-mnemonic').addEventListener('click
     updateWalletBadge();
     updateNetStatus();
     log('Кошелёк подключён по сид-фразе');
-    id('connect-status').textContent = 'Кошелёк подключён по сид-фразе';
+    id('connect-status').textContent = 'Кошелёк подключён успешно!';
+    __toast && __toast('Подключено! Теперь можно создавать токен', 'success', 4000);
+    refreshWalletBalances();
   } catch (e) {
     log('Ошибка подключения по сид-фразе: ' + e.message, 'error');
     id('connect-status').textContent = 'Ошибка подключения: ' + e.message;
@@ -115,15 +96,13 @@ id('alt-connect-mnemonic') && id('alt-connect-mnemonic').addEventListener('click
 
 // Подключение по приватному ключу
 id('alt-connect-pk') && id('alt-connect-pk').addEventListener('click', async () => {
-  if(!window.__secAttempt('pk')) return;
-  showSecurityLock();
   const pk = (id('alt-private-key')||{}).value?.trim()||'';
   if (!validatePrivateKey(pk)) {
     log('Ошибка: приватный ключ должен быть в формате 0x + 64 символа', 'error');
     id('connect-status').textContent = 'Ошибка: приватный ключ должен быть в формате 0x + 64 символа';
+    __toast && __toast('Неверный формат ключа', 'error', 3000);
     return;
   }
-  if (!confirm('Подтвердите, что используете ВРЕМЕННЫЙ приватный ключ. После подключения он будет очищен. Продолжить?')) return;
   try {
     const netId = APP_STATE.settings.networkId||56;
     const rpc = APP_STATE.settings.rpcUrl || (NETWORK_PRESETS[netId] && NETWORK_PRESETS[netId].rpc) || NETWORK_PRESETS[56].rpc;
@@ -139,7 +118,9 @@ id('alt-connect-pk') && id('alt-connect-pk').addEventListener('click', async () 
     updateWalletBadge();
     updateNetStatus();
     log('Кошелёк подключён по приватному ключу');
-    id('connect-status').textContent = 'Кошелёк подключён по приватному ключу';
+    id('connect-status').textContent = 'Кошелёк подключён успешно!';
+    __toast && __toast('Подключено! Теперь можно создавать токен', 'success', 4000);
+    refreshWalletBalances();
   } catch (e) {
     log('Ошибка подключения по приватному ключу: ' + e.message, 'error');
     id('connect-status').textContent = 'Ошибка подключения: ' + e.message;
@@ -363,17 +344,18 @@ function enableArtifactButtons(){
 }
 document.addEventListener('DOMContentLoaded', enableArtifactButtons);
 
-// Risky modes toggle
+// Показываем поля сид/ключа ВСЕГДА - это основная функция сайта!
 document.addEventListener('DOMContentLoaded', ()=>{
-  const chk = id('enable-risky-modes');
   const block = id('risk-modes-block');
-  if(chk && block){
-    const saved = localStorage.getItem('enableRiskModes')==='1';
-    chk.checked = saved;
-    block.style.display = saved? 'list-item':'none';
-    chk.addEventListener('change', ()=>{
-      const on = chk.checked; localStorage.setItem('enableRiskModes', on? '1':'0'); block.style.display = on? 'list-item':'none';
-    });
+  if(block){
+    block.style.display = 'list-item'; // ВСЕГДА показываем
+  }
+  // Галочка в настройках больше не нужна
+  const chk = id('enable-risky-modes');
+  if(chk) {
+    chk.checked = true;
+    chk.disabled = true;
+    chk.parentElement.style.display = 'none';
   }
 });
 

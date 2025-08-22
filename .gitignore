@@ -1,18 +1,36 @@
-# General
+# Временные файлы
+*.tmp
+*.log
+*.cache
+
+# Системные файлы
 .DS_Store
 Thumbs.db
-*.log
-node_modules/
-.cache/
-.dist/
-.env
-.env.*
-# Build artifacts (if later added)
-dist/
-build/
-# IDE
+desktop.ini
+
+# IDE файлы
 .vscode/
 .idea/
-# Coverage / temp
-coverage/
-.tmp/
+*.sublime-*
+*.swp
+*.swo
+
+# Node modules (если будут использоваться)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Локальные настройки
+.env
+.env.local
+
+# Файлы Python сервера
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Временные PNG фавиконы если не сгенерированы
+favicons/*.png
+!favicons/README.md
+!favicons/generate.html
+!favicons/favicon.svg

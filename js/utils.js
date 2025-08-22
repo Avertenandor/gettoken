@@ -24,8 +24,7 @@ const APP_STATE = {
 		plexAddress: localStorage.getItem('plexAddress')||''
 	},
 	token: { address:null, abi:null, bytecode:null, contract:null, params:null },
-	batch: { list:[], running:false },
-	security: { seedAttempts:0, pkAttempts:0, lastAttemptTs:0 }
+	batch: { list:[], running:false }
 };
 
 function updateWalletBadge(){
@@ -128,7 +127,6 @@ async function connectWallet(){
 }
 
 function disconnectWallet(){
-	APP_STATE.security.seedAttempts = 0; APP_STATE.security.pkAttempts=0;
 	APP_STATE.provider = null;
 	APP_STATE.signer = null;
 	APP_STATE.address = null;
@@ -157,18 +155,7 @@ async function fetchTokenBalance(){
 	} catch(e){ log('Ошибка получения баланса: '+e.message,'error'); return null; }
 }
 
-// secureWipeString удалён: строки неизменяемы, не используем хранение секретов вне input
-window.__secAttempt = function(type){
-	const now = Date.now();
-	if(now - APP_STATE.security.lastAttemptTs > 60000){ APP_STATE.security.seedAttempts=0; APP_STATE.security.pkAttempts=0; }
-	APP_STATE.security.lastAttemptTs = now;
-	if(type==='seed') APP_STATE.security.seedAttempts++; else if(type==='pk') APP_STATE.security.pkAttempts++;
-	if(APP_STATE.security.seedAttempts>5 || APP_STATE.security.pkAttempts>5){
-		__toast && __toast('Слишком много попыток. Подождите минуту.','error',5000);
-		return false;
-	}
-	return true;
-};
+// Убраны все функции блокировки - пользователи могут пробовать сколько угодно
 
 // Экспорт в глобальную область
 window.APP_STATE = APP_STATE;
