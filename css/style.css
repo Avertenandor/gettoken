@@ -2,6 +2,7 @@ body{font-family:system-ui,Arial,sans-serif;margin:0;display:flex;flex-direction
 header{background:#181c22;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:16px}
 nav button{margin-right:6px}
 .top-banner{width:100%;margin-top:8px;background:#0b3b1b;color:#d1fae5;border:1px solid #065f46;border-radius:6px;padding:8px 10px;font-size:13px;line-height:1.35}
+.top-banner .banner-pre{white-space:pre-wrap;margin:0;font-family:inherit}
 button{cursor:pointer;background:#2563eb;border:none;color:#fff;padding:6px 14px;border-radius:4px;font-size:14px;transition:background .2s}
 button:hover:not(:disabled){background:#1d4ed8}
 button:disabled{background:#444;cursor:not-allowed}

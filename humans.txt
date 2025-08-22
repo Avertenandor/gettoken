@@ -2,6 +2,6 @@
 Developer: GENESIS Auto Builder
 Contact: https://example.com
 /* SITE PURPOSE */
-DEFI 5th gen: serverless token minting (BEP-20/ERC-20). All operations are client-side and visible only to the user.
+Добpого времени суток — это сайт DEFI 5‑го поколения. Сайт работает без сервера, напрямую с смарт‑контрактами и блокчейном, поэтому любые ваши действия на сайте видите только вы и никто более. Он создан на русском языке для тех, кто хочет печатать токены для своих целей, продуктов и проектов. Не обновляйте страницу, пока не сохраните все данные вашей монеты.
 /* THANKS */
 Open-source community, Ethers, BSC.
