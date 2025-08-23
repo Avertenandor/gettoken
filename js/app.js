@@ -396,6 +396,12 @@ contract ConfigERC20 {
   }
 }`;
 
+// Экспорт исходников в глобальную область для переиспользования (массовая верификация и т.п.)
+try {
+  window.CONFIG_ERC20_SOURCE = CONFIG_ERC20_SOURCE;
+  window.SOURCE_TEMPLATE = SOURCE_TEMPLATE;
+} catch(_) {}
+
 let compilerWorker = null;
 function ensureCompiler(){
   if(compilerWorker) return compilerWorker;

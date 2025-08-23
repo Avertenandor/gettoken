@@ -48,6 +48,15 @@
       return { ok:true, symbol: sym||'', decimals: (dec??'') };
     }catch(e){ return { ok:false, error:e.message } }
   }
+  async function fetchDeployBytecode(addr, chain){
+    try{
+      const provider = window.APP_STATE?.provider || new ethers.JsonRpcProvider((window.NETWORK_PRESETS && window.NETWORK_PRESETS[chain]?.rpc) || '');
+      const txHash = await provider.getTransactionReceipt(addr).then(()=>null).catch(()=>null); // заглушка
+      // У некоторых эксплореров есть bytecode в getsourcecode, но здесь идём простым путём: getCode по адресу (runtime), а creation через API сканера недоступен. Поэтому сравнение будем делать по runtime (после конструкторных данных).
+      const runtime = await provider.getCode(addr);
+      return { ok:true, runtime };
+    }catch(e){ return { ok:false, error:e.message }; }
+  }
   async function run(){
     cancel = false;
     const btn = document.getElementById('bulk-verify-start');
@@ -64,20 +73,25 @@
       const exp = explorerBase(chain); tr.querySelector('.c-exp a').href = exp? `${exp}/address/${addr}`:'#'; tr.querySelector('.c-exp a').textContent='Explorer';
       tr.querySelector('.c-status').textContent = 'Проверка...';
       // Проверим — не верифицирован ли уже
-      const abiInfo = await fetchAbi(addr, chain);
+  const abiInfo = await fetchAbi(addr, chain);
       if(abiInfo.ok && abiInfo.abi && abiInfo.abi !== 'Contract source code not verified'){ tr.querySelector('.c-status').textContent='Уже верифицирован'; continue; }
       a(`${addr}: не верифицирован, пытаюсь верифицировать...`);
-      // Пытаемся загрузить исходник проекта из localStorage passport или предлагать ручной input — сейчас делаем простой шаблон
-      const name = 'Token'; const symbol = 'TKN'; const decimals = 18; const supply = 0n;
-      const source = (window.CONFIG_ERC20_SOURCE) ? window.CONFIG_ERC20_SOURCE : (typeof SOURCE_TEMPLATE==='function'? SOURCE_TEMPLATE(name,symbol,decimals,String(supply)) : '');
+  // Попробуем получить on-chain meta (symbol/decimals)
+  const meta = await fetchContractMeta(addr, chain);
+  const symbol = meta.ok && meta.symbol ? meta.symbol : 'TKN';
+  const decimals = meta.ok && (meta.decimals!=null) ? Number(meta.decimals) : 18;
+  const name = symbol; // чаще всего имя и символ совпадают у наших шаблонов
+  const supply = 0n; // неизвестно — это не влияет на runtime
+  const source = (window.CONFIG_ERC20_SOURCE) ? window.CONFIG_ERC20_SOURCE : (typeof SOURCE_TEMPLATE==='function'? SOURCE_TEMPLATE(name,symbol,decimals,String(supply)) : '');
       const contractName = (source.match(/contract\s+([A-Za-z0-9_]+)/)||[])[1] || 'ConfigERC20';
       const { base, variant } = getApi(chain);
       const key = (window.API_KEYS && (window.API_KEYS.bscscan||window.API_KEYS.etherscan)) || (window.APP_STATE?.settings?.apiKey)||'';
       const form = new URLSearchParams();
       form.set('module','contract'); form.set('action','verifysourcecode'); form.set('contractaddress', addr);
       form.set('sourceCode', source); form.set('codeformat','solidity-single-file'); form.set('contractname', contractName);
-      form.set('compilerversion','v0.8.24+commit.e11b9ed9'); form.set('optimizationUsed','1'); form.set('runs','200'); form.set('licenseType','3');
-      form.set('constructorArguments',''); form.set('constructorArguements','');
+  form.set('compilerversion','v0.8.24+commit.e11b9ed9'); form.set('optimizationUsed','1'); form.set('runs','200'); form.set('licenseType','3');
+  // Параметры конструктора не нужны для runtime‑сравнения, но передадим пустые — мы не знаем исходный выпуск.
+  form.set('constructorArguments',''); form.set('constructorArguements','');
       if(variant==='v2') form.set('chainid', String(chain));
       form.set('apikey', key);
       try{

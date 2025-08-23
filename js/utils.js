@@ -29,6 +29,25 @@ if(__origFetch){
 			__pushLog('info', `fetch → ${url}`);
 			const resp = await __origFetch(input, init);
 			__pushLog(resp.ok? 'info':'error', `fetch ← ${resp.status} ${url}`);
+			try{
+				const u = String(url);
+			const isScan = /api\.(bscscan|etherscan)\.com\//.test(u);
+				if(isScan){
+					const ct = resp.headers.get('content-type')||'';
+					if(ct.includes('application/json')){
+						const dj = await resp.clone().json().catch(()=>null);
+						if(dj){
+							const status = dj.status!=null? String(dj.status):'';
+							const result = dj.result!=null? String(dj.result): (dj.message!=null? String(dj.message):'');
+							const brief = result.length>160? (result.slice(0,160)+'…') : result;
+							__pushLog(status==='1'?'info':'warn', `scan ← status=${status} result=${brief}`);
+						}
+					} else {
+						const txt = await resp.clone().text().catch(()=> '');
+						if(txt){ __pushLog('warn', `scan ← text ${txt.slice(0,120)}…`); }
+					}
+				}
+			}catch(_){/* игнорируем ошибки парсинга для логов */}
 			return resp;
 		}catch(e){ __pushLog('error', `fetch ✖ ${e.message}`); throw e; }
 	};
@@ -39,7 +58,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
 	const out = document.getElementById('log-output'); if(!out) return;
 	const filter = document.getElementById('log-filter');
 	const clearBtn = document.getElementById('log-clear');
-	const exportBtn = document.getElementById('log-export');
+		const exportBtn = document.getElementById('log-export');
+		const copyBtn = document.getElementById('log-copy');
 	const cnt = document.getElementById('log-count'); if(cnt) cnt.textContent = `Всего: ${__LOGS.length}`;
 	function render(){
 		const f = (filter&&filter.value)||'all';
@@ -48,7 +68,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
 		out.scrollTop = out.scrollHeight;
 		if(cnt) cnt.textContent = `Всего: ${__LOGS.length}`;
 	}
-	filter && filter.addEventListener('change', render);
+		filter && filter.addEventListener('change', render);
+		copyBtn && copyBtn.addEventListener('click', ()=>{ try{ navigator.clipboard.writeText(out.textContent||''); __pushLog('info','Логи скопированы в буфер обмена'); }catch(e){ __pushLog('error','Не удалось скопировать логи: '+e.message); } });
 	clearBtn && clearBtn.addEventListener('click', ()=>{ __LOGS.length = 0; render(); });
 	exportBtn && exportBtn.addEventListener('click', ()=>{
 		const blob = new Blob([out.textContent], { type:'text/plain;charset=utf-8' });
@@ -59,7 +80,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
 	// window.onerror и unhandledrejection
 	window.addEventListener('error', (e)=>{ __pushLog('error', `onerror: ${e.message||''} @ ${e.filename||''}:${e.lineno||''}`); });
-	window.addEventListener('unhandledrejection', (e)=>{ __pushLog('error', `unhandledrejection: ${e.reason && e.reason.message ? e.reason.message : String(e.reason)}`); });
+	window.addEventListener('unhandledrejection', (e)=>{
+		const msg = (e.reason && e.reason.message) ? e.reason.message : String(e.reason);
+		if(/reading 'type'/.test(msg)) { __pushLog('warn', `wallet inpage noise: ${msg}`); return; }
+		__pushLog('error', `unhandledrejection: ${msg}`);
+	});
 
 	// Перехват XHR
 	(function(){
