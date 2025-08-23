@@ -483,9 +483,25 @@ id('token-form')?.addEventListener('submit', async (e)=>{
           w.postMessage({ id:altId, cmd:'compile', payload:{ source, optimize:true, version:'v0.8.26+commit.8a97fa17' } });
         });
         return res2;
-      }catch(e2){ log('Ошибка компиляции (alt): '+e2.message,'error'); return null; }
+      }catch(e2){
+        log('Ошибка компиляции (alt): '+e2.message,'error');
+        return null;
+      }
     });
-    if(!result || !result.abi || !result.bytecode){ log('Компилятор вернул пустой результат','error'); if(status) status.textContent='Ошибка компиляции'; return; }
+    if(!result || !result.abi || !result.bytecode){
+      // Жёсткий фоллбек на артефакт
+      try{
+        log('Компилятор недоступен — переключаюсь на артефакт');
+        const resp = await fetch('./artifacts/FixedERC20.json', { cache:'no-cache' });
+        if(resp.ok){ const j = await resp.json(); if(j && j.bytecode && j.bytecode!=='0x'){ result = { abi:j.abi, bytecode:j.bytecode }; savedSource = (j.source)||CONFIG_ERC20_SOURCE; }
+        }
+      }catch(_){ }
+      if(!result || !result.abi || !result.bytecode){
+        log('Компилятор вернул пустой результат','error');
+        if(status) status.textContent='Ошибка компиляции';
+        return;
+      }
+    }
   }
   if(status) status.textContent = 'Оценка газа...';
   try {
