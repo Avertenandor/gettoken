@@ -3,7 +3,7 @@
 
 let solcLoaded = false;
 let solc;
-let compileStandardWrapper = null;
+let compileWrapper = null; // универсальная обёртка
 
 function loadSolc(version = 'v0.8.24+commit.e11b9ed9') {
   if (solcLoaded && compileStandardWrapper) return Promise.resolve();
@@ -49,12 +49,20 @@ function loadSolc(version = 'v0.8.24+commit.e11b9ed9') {
         reject(new Error('Ошибка инициализации solc-js (cwrap недоступен)'));
         return;
       }
-      
-      compileStandardWrapper = solc.cwrap('compileStandard','string',['string']);
-      if (typeof compileStandardWrapper !== 'function') {
-        reject(new Error('compileStandard недоступен'));
+      // Пытаемся найти доступную функцию компиляции в разных версиях
+      let fn = null;
+      try { fn = solc.cwrap('compileStandard','string',['string']); } catch(_) { fn = null; }
+      if(!fn){
+        try { fn = solc.cwrap('solidity_compile','string',['string']); } catch(_) { fn = null; }
+      }
+      if(!fn){
+        try { fn = solc.cwrap('compileStandardJSON','string',['string']); } catch(_) { fn = null; }
+      }
+      if(!fn){
+        reject(new Error('Не найдена функция компиляции (compileStandard/solidity_compile/compileStandardJSON)'));
         return;
       }
+      compileWrapper = fn;
       
       solcLoaded = true;
       resolve();
@@ -76,7 +84,7 @@ function loadSolc(version = 'v0.8.24+commit.e11b9ed9') {
 }
 
 function compile(source, optimize = true) {
-  if (!solcLoaded || !compileStandardWrapper) throw new Error('solc не загружен');
+  if (!solcLoaded || !compileWrapper) throw new Error('solc не загружен');
   const input = {
     language: 'Solidity',
     sources: { 'Token.sol': { content: source } },
@@ -87,7 +95,7 @@ function compile(source, optimize = true) {
   };
   let outRaw;
   try {
-    outRaw = compileStandardWrapper(JSON.stringify(input));
+    outRaw = compileWrapper(JSON.stringify(input));
   } catch(err){
     throw new Error('Ошибка выполнения solc: '+(err?.message||err));
   }
