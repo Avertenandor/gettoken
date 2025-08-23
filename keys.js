@@ -1,6 +1,5 @@
 // Этот файл можно переименовать или заменить в CI. Здесь пример автоматической подстановки API ключей.
 window.API_KEYS = window.API_KEYS || {
-  // Заполните вашими ключами. Если вы их уже добавили — оставьте как есть.
-  // bscscan: 'YOUR_BSCSCAN_API_KEY',
-  // etherscan: 'YOUR_ETHERSCAN_API_KEY'
+  bscscan: 'ZV525F4QEKK2C3DWNGR69AUF6GG6Y2ZW39',
+  etherscan: 'RF1Q8SCFHFD1EVAP5A4WCMIM4DREA7UNUH'
 };
