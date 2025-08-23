@@ -354,9 +354,16 @@ id('token-form')?.addEventListener('submit', async (e)=>{
     result = { abi: artifact.abi, bytecode: artifact.bytecode };
     log('Режим деплоя: артефакт (без компиляции)');
     if(status) status.textContent = 'Подготовка деплоя...';
+  // UI: показываем, что decimals/supply фиксированы для текущего шаблона
+  const hint = id('fixed-artifact-hint'); if(hint) hint.style.display = '';
+  const decEl = id('token-decimals'); if(decEl) { decEl.disabled = true; decEl.title = 'Фиксировано в шаблоне'; }
+  const supEl = id('token-supply'); if(supEl) { supEl.disabled = true; supEl.title = 'Фиксировано в шаблоне'; }
   } else {
     // Fallback: компиляция в воркере
     log('Режим деплоя: компилятор (артефакт недоступен)');
+  const hint = id('fixed-artifact-hint'); if(hint) hint.style.display = 'none';
+  const decEl = id('token-decimals'); if(decEl) { decEl.disabled = false; decEl.title = ''; }
+  const supEl = id('token-supply'); if(supEl) { supEl.disabled = false; supEl.title = ''; }
     const source = SOURCE_TEMPLATE(name, symbol, decimals, supply.toString());
   savedSource = source;
     const w = ensureCompiler();
