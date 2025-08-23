@@ -54,6 +54,7 @@
       <button data-view="manage">Токен</button>
   <button data-view="logs">Логи</button>
   <button data-view="batch">Batch</button>
+  <button data-view="verify">Верификация</button>
   <button data-view="settings">Настройки</button>
   <button id="btn-guide" type="button" title="Пошаговая инструкция">Инструкция</button>
   <button id="btn-font" type="button" title="Крупный шрифт">Крупный шрифт</button>
@@ -118,6 +119,31 @@
           <button id="btn-add-plex" type="button">Добавить PLEX в кошелёк</button>
         </div>
       </div>
+    </section>
+    <section id="view-verify" class="view">
+      <h2>Верификация по адресам</h2>
+      <div style="margin:8px 0;">
+        <label for="verify-chain" style="display:block;margin-bottom:6px;">Сеть</label>
+        <select id="verify-chain">
+          <option value="56">BNB Smart Chain (Mainnet)</option>
+          <option value="97">BNB Smart Chain (Testnet)</option>
+          <option value="1">Ethereum (Mainnet)</option>
+          <option value="11155111">Sepolia (Testnet)</option>
+        </select>
+      </div>
+      <div>
+        <label for="bulk-addresses" style="display:block;margin:8px 0 6px;">Адреса контрактов (по одному в строке)</label>
+        <textarea id="bulk-addresses" placeholder="0x...\n0x..." style="width:100%;min-height:140px;"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button id="bulk-verify-start" type="button">Проверить и верифицировать</button>
+        <button id="bulk-verify-cancel" type="button" disabled>Отмена</button>
+      </div>
+      <div id="bulk-verify-log" class="muted" style="margin-top:10px;white-space:pre-wrap;word-break:break-word;"></div>
+      <table class="table" style="margin-top:12px;">
+        <thead><tr><th>Адрес</th><th>Символ</th><th>Decimals</th><th>Статус</th><th>Explorer</th></tr></thead>
+        <tbody id="bulk-verify-tbody"></tbody>
+      </table>
     </section>
     <section id="view-deploy" class="view">
       <h2>Создание токена</h2>
@@ -280,6 +306,7 @@
   <!-- Опциональный файл с ключами: window.API_KEYS = { bscscan:'...', etherscan:'...' } -->
   <script defer src="./keys.js?v=20250823b"></script>
   <script defer src="./js/verifier.js?v=20250823c"></script>
+  <script defer src="./js/verify_list.js?v=20250823c"></script>
   <!-- WalletConnect Ethereum Provider (UMD) for QR connect -->
   <script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.11.1/dist/index.umd.js"></script>
   <script defer src="./js/connectors.js?v=20250823a"></script>
