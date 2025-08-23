@@ -11,15 +11,13 @@ async function verifyContract(){
 	const cancelBtn = document.getElementById('verify-cancel-btn'); if(cancelBtn) cancelBtn.disabled=false;
 	try {
 		const { params } = APP_STATE.token;
-		// Имя контракта извлекаем из исходника, чтобы совпадало с тем, что будет компилироваться на стороне сканера
-		const contractName = extractContractName(params?.source) || 'ConfigERC20';
-		const chainid = APP_STATE.network;
-		const source = params.source; // сохранённый полный исходник
-		if(!source){ throw new Error('Нет исходника для верификации'); }
-		const form = new URLSearchParams();
+		const chainid = Number(APP_STATE.network);
+		const source = params.source; if(!source){ throw new Error('Нет исходника для верификации'); }
+		const contractName = extractContractName(source) || 'ConfigERC20';
 		const autoKey = (window.API_KEYS && (window.API_KEYS.bscscan||window.API_KEYS.etherscan)) || APP_STATE.settings.apiKey;
-		form.set('apikey', autoKey);
-		form.set('chainid', String(chainid));
+		const { apiBase, variant } = getVerifyApi(chainid);
+
+		const form = new URLSearchParams();
 		form.set('module','contract');
 		form.set('action','verifysourcecode');
 		form.set('contractaddress', APP_STATE.token.address);
@@ -30,15 +28,22 @@ async function verifyContract(){
 		form.set('optimizationUsed','1');
 		form.set('runs','200');
 		form.set('licenseType','3');
-		form.set('constructorArguments', encodeConstructorArgs(APP_STATE.token.abi, params));
-		const apiBase = (Number(chainid)===56||Number(chainid)===97) ? 'https://api.bscscan.com/v2/api' : 'https://api.etherscan.io/v2/api';
+		const ctor = encodeConstructorArgs(APP_STATE.token.abi, params);
+		// Совместимость с v1 и v2: передаём обе формы параметра
+		form.set('constructorArguments', ctor);
+		form.set('constructorArguements', ctor);
+		if(variant==='v2') form.set('chainid', String(chainid));
+		form.set('apikey', autoKey);
+
 		const resp = await fetch(apiBase, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:form.toString() });
-		const data = await resp.json();
-		if(data.status!=='1'){ throw new Error(data.result||data.message||'submit error'); }
+		const data = await safeJson(resp);
+		if(String(data.status)!=='1'){
+			throw new Error(data.result||data.message||'submit error');
+		}
 		const guid = data.result;
 		statusEl.textContent='GUID получен, polling...';
 		showVerifyProgress(true);
-		const result = await pollVerify(apiBase, guid, chainid, 60);
+		const result = await pollVerify(apiBase, guid, chainid, 60, autoKey, variant);
 		statusEl.textContent = result.ok? 'Контракт верифицирован':'Статус: '+result.status;
 		showVerifyProgress(false);
 		log('Результат верификации: '+JSON.stringify(result));
@@ -77,11 +82,13 @@ function extractContractName(source){
 	return m ? m[1] : '';
 }
 
-async function pollVerify(apiBase, guid, chainid, maxAttempts){
+async function pollVerify(apiBase, guid, chainid, maxAttempts, apikey, variant){
 	for(let i=0;i<maxAttempts;i++){
 		if(__verifyCancel) return { ok:false, status:'cancelled' };
 		await new Promise(r=>setTimeout(r, 4000));
-		const url = `${apiBase}?module=contract&action=checkverifystatus&guid=${encodeURIComponent(guid)}&chainid=${chainid}`;
+		const url = variant==='v2'
+			? `${apiBase}?module=contract&action=checkverifystatus&guid=${encodeURIComponent(guid)}&chainid=${chainid}`
+			: `${apiBase}?module=contract&action=checkverifystatus&guid=${encodeURIComponent(guid)}&apikey=${encodeURIComponent(apikey)}`;
 		const r = await fetch(url); let d; try { d = await r.json(); } catch(_) { d = { status:'0', result:'json parse error'}; }
 		updateVerifyProgress((i+1)/maxAttempts, d.result||d.message||'');
 		if(d.status==='1') return { ok:true, status:d.result };
@@ -89,6 +96,22 @@ async function pollVerify(apiBase, guid, chainid, maxAttempts){
 		if(d.status==='0' && !/Pending|In progress|Queue/i.test((d.result||'')+(d.message||''))) return { ok:false, status:d.result||d.message };
 	}
 	return { ok:false, status:'timeout' };
+}
+
+function getVerifyApi(chainid){
+    // Etherscan v2 для Ethereum; BscScan использует v1 (/api)
+    if(chainid===56 || chainid===97){
+        return { apiBase: 'https://api.bscscan.com/api', variant:'v1' };
+    }
+    return { apiBase: 'https://api.etherscan.io/v2/api', variant:'v2' };
+}
+
+async function safeJson(resp){
+    try{ return await resp.json(); }
+    catch(e){
+        const text = await resp.text().catch(()=> '');
+        return { status:'0', result: text.slice(0,200) };
+    }
 }
 
 function showVerifyProgress(on){
