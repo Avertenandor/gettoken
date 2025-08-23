@@ -21,7 +21,17 @@ function loadSolc(version = 'v0.8.24+commit.e11b9ed9') {
       };
       
       // Загружаем solc
-      importScripts(`https://binaries.soliditylang.org/bin/soljson-${version}.js`);
+      try{
+        importScripts(`https://binaries.soliditylang.org/bin/soljson-${version}.js`);
+      } catch(primaryError){
+        // Альтернативная загрузка через jsDelivr mirror
+        try{
+          importScripts(`https://cdn.jsdelivr.net/gh/ethereum/solc-bin@gh-pages/bin/soljson-${version}.js`);
+        }catch(mirrorError){
+          console.error('Both primary and mirror solc load failed:', primaryError, mirrorError);
+          throw primaryError;
+        }
+      }
       
       // Проверяем загрузку
       if (typeof Module === 'undefined' || !Module) {

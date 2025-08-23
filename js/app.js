@@ -342,8 +342,9 @@ id('token-form')?.addEventListener('submit', async (e)=>{
   if(!artifact || !artifact.bytecode || artifact.bytecode === '0x'){
     try{
       const resp = await fetch('./artifacts/FixedERC20.json', { cache:'no-cache' });
-      if(resp.ok){ const j = await resp.json(); if(j && j.bytecode && j.bytecode !== '0x') { artifact = j; APP_STATE.artifacts.fixedErc20 = j; } }
-    }catch(_){ /* ignore */ }
+      if(!resp.ok){ log('Артефакт не загружен: HTTP '+resp.status, 'error'); }
+      if(resp.ok){ const j = await resp.json(); if(j && j.bytecode && j.bytecode !== '0x') { artifact = j; APP_STATE.artifacts.fixedErc20 = j; } else { log('Артефакт загружен, но bytecode отсутствует или пуст (0x)', 'error'); } }
+    }catch(e){ log('Ошибка загрузки артефакта: '+(e?.message||e), 'error'); }
   }
   let result = null;
   if(artifact && artifact.bytecode && artifact.bytecode !== '0x'){
@@ -353,6 +354,7 @@ id('token-form')?.addEventListener('submit', async (e)=>{
     if(status) status.textContent = 'Подготовка деплоя...';
   } else {
     // Fallback: компиляция в воркере
+    log('Режим деплоя: компилятор (артефакт недоступен)');
     const source = SOURCE_TEMPLATE(name, symbol, decimals, supply.toString());
     const w = ensureCompiler();
     const reqId = 'cmp-'+Date.now();
@@ -381,32 +383,33 @@ id('token-form')?.addEventListener('submit', async (e)=>{
   if(status) status.textContent = 'Оценка газа...';
   try {
     const factory = new ethers.ContractFactory(result.abi, result.bytecode, APP_STATE.signer);
-  // initialSupply учитывает decimals + guard переполнения
-  const pow = 10n ** BigInt(decimals);
-  const MAX = (1n<<256n) - 1n;
-  if(supply > MAX / pow){ log('Переполнение: слишком большой выпуск при данных decimals','error'); return; }
-  const initialSupply = supply * pow;
+    // Определяем параметры конструктора и формируем deployArgs
+    const ctor = (result.abi||[]).find(x=> x.type==='constructor') || { inputs:[] };
+    const needsAmount = ((ctor.inputs||[]).length >= 1);
+    let deployArgs = [];
+    let initialSupply = null;
+    if(needsAmount){
+      const pow = 10n ** BigInt(decimals);
+      const MAX = (1n<<256n) - 1n;
+      if(supply > MAX / pow){ log('Переполнение: слишком большой выпуск при данных decimals','error'); return; }
+      initialSupply = supply * pow;
+      deployArgs = [ initialSupply ];
+    }
     // Оценка газа
     let gasEstimate, feeData; 
     try {
-      // ethers v6: getDeployTransaction возвращает объект транзакции, но signer.estimateGas ожидает правильные поля
-      // Определяем сигнатуру конструктора по ABI
-      const ctor = (result.abi||[]).find(x=> x.type==='constructor') || { inputs:[] };
-      const needsAmount = (ctor.inputs||[]).length === 1; // ожидаем uint256
-      const txReq = needsAmount ? await factory.getDeployTransaction(initialSupply) : await factory.getDeployTransaction();
+      const txReq = await factory.getDeployTransaction(...deployArgs);
       if(factory.signer && factory.signer.estimateGas){ gasEstimate = await factory.signer.estimateGas(txReq); }
       else { gasEstimate = null; }
     } catch(e){ gasEstimate = null; }
     try { feeData = (factory.signer && factory.signer.provider && factory.signer.provider.getFeeData) ? await factory.signer.provider.getFeeData() : {}; } catch(e){ feeData = {}; }
     const gasPrice = (feeData && (feeData.gasPrice || feeData.maxFeePerGas)) ? (feeData.gasPrice || feeData.maxFeePerGas) : 0n;
-  const costNative = (gasEstimate && gasPrice) ? Number(gasEstimate * gasPrice) / 1e18 : null;
-  const nativeSym = getNativeSymbol(APP_STATE.network);
-  if(!confirm(`Подтвердите деплой:\nИмя: ${name}\nСимвол: ${symbol}\nDecimals: ${decimals}\nSupply (читаемый): ${supply}\nSupply (raw): ${initialSupply}\nОценка газа: ${gasEstimate || '—'}\nОжидаемая стоимость (${nativeSym}): ${costNative? costNative.toFixed(6):'—'}`)) { if(status) status.textContent='Отменено пользователем'; return; }
-  if(status) status.textContent = 'Деплой...';
-  // Вызов deploy с аргументом или без него
-  const ctor = (result.abi||[]).find(x=> x.type==='constructor') || { inputs:[] };
-  const needsAmount = (ctor.inputs||[]).length === 1;
-  const contract = needsAmount ? await factory.deploy(initialSupply) : await factory.deploy();
+    const costNative = (gasEstimate && gasPrice) ? Number(gasEstimate * gasPrice) / 1e18 : null;
+    const nativeSym = getNativeSymbol(APP_STATE.network);
+    const supplyBlock = needsAmount ? `\nSupply (читаемый): ${supply}\nSupply (raw): ${initialSupply}` : '';
+    if(!confirm(`Подтвердите деплой:\nИмя: ${name}\nСимвол: ${symbol}\nDecimals: ${decimals}${supplyBlock}\nОценка газа: ${gasEstimate || '—'}\nОжидаемая стоимость (${nativeSym}): ${costNative? costNative.toFixed(6):'—'}`)) { if(status) status.textContent='Отменено пользователем'; return; }
+    if(status) status.textContent = 'Деплой...';
+    const contract = await factory.deploy(...deployArgs);
     const deployTx = contract.deploymentTransaction();
     log('Deploy tx: '+deployTx.hash);
   const explorerBase = (typeof getExplorerBase==='function') ? getExplorerBase(APP_STATE.network) : '';
