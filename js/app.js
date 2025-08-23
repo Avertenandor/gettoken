@@ -399,7 +399,7 @@ contract ConfigERC20 {
 let compilerWorker = null;
 function ensureCompiler(){
   if(compilerWorker) return compilerWorker;
-  compilerWorker = new Worker('./js/compiler.worker.js');
+  compilerWorker = new Worker('./js/compiler.worker.js?v=20250823c');
   return compilerWorker;
 }
 
@@ -423,7 +423,7 @@ id('token-form')?.addEventListener('submit', async (e)=>{
   // Если артефакт не подгрузился заранее — пробуем подгрузить прямо сейчас
   if(!artifact || !artifact.bytecode || artifact.bytecode === '0x'){
     try{
-      const resp = await fetch('./artifacts/FixedERC20.json', { cache:'no-cache' });
+      const resp = await fetch('./artifacts/FixedERC20.json?v=20250823c', { cache:'no-cache' });
       if(!resp.ok){ log('Артефакт не загружен: HTTP '+resp.status, 'error'); }
       if(resp.ok){ const j = await resp.json(); if(j && j.bytecode && j.bytecode !== '0x') { artifact = j; APP_STATE.artifacts.fixedErc20 = j; } else { log('Артефакт загружен, но bytecode отсутствует или пуст (0x)', 'error'); } }
     }catch(e){ log('Ошибка загрузки артефакта: '+(e?.message||e), 'error'); }
@@ -492,7 +492,7 @@ id('token-form')?.addEventListener('submit', async (e)=>{
       // Жёсткий фоллбек на артефакт
       try{
         log('Компилятор недоступен — переключаюсь на артефакт');
-        const resp = await fetch('./artifacts/FixedERC20.json', { cache:'no-cache' });
+  const resp = await fetch('./artifacts/FixedERC20.json?v=20250823c', { cache:'no-cache' });
         if(resp.ok){ const j = await resp.json(); if(j && j.bytecode && j.bytecode!=='0x'){ result = { abi:j.abi, bytecode:j.bytecode }; savedSource = (j.source)||CONFIG_ERC20_SOURCE; }
         }
       }catch(_){ }
