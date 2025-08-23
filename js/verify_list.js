@@ -122,7 +122,48 @@
           if(pd.status==='0' && /already verified/i.test(status)){ ok=true; status='already verified'; break; }
           if(pd.status==='0' && !/Pending|In progress|Queue/i.test(status)) break;
         }
-        tr.querySelector('.c-status').textContent = ok? 'Верифицирован' : ('Ошибка: '+status);
+        if(ok){ tr.querySelector('.c-status').textContent = 'Верифицирован'; }
+        else {
+          // Фоллбек: если байткод не совпал, пробуем шаблон SOURCE_TEMPLATE (конструктор uint256)
+          if(/does\s+NOT\s+match|Unable to verify/i.test(status)){
+            a(`${addr}: fallback → пытаюсь с шаблоном по символу`);
+            const sanitized = (symbol||'TKN').replace(/[^A-Za-z0-9_]/g,'');
+            const cname = (/^[0-9]/.test(sanitized) ? '_'+sanitized : sanitized) || 'Token';
+            const altSource = (typeof SOURCE_TEMPLATE==='function') ? SOURCE_TEMPLATE(name||symbol||'Token', symbol||'TKN', decimals||18, (totalSupply||0n).toString()) : '';
+            const altForm = new URLSearchParams();
+            altForm.set('module','contract'); altForm.set('action','verifysourcecode'); altForm.set('contractaddress', addr);
+            altForm.set('sourceCode', altSource); altForm.set('codeformat','solidity-single-file'); altForm.set('contractname', cname);
+            altForm.set('compilerversion','v0.8.24+commit.e11b9ed9'); altForm.set('optimizationUsed','1'); altForm.set('runs','200'); altForm.set('licenseType','3');
+            try{
+              const coder = (ethers && ethers.AbiCoder && ethers.AbiCoder.defaultAbiCoder) ? ethers.AbiCoder.defaultAbiCoder() : new ethers.AbiCoder();
+              const enc = coder.encode(['uint256'], [totalSupply||0n]); const hex = enc.startsWith('0x')? enc.slice(2): enc;
+              altForm.set('constructorArguments', hex); altForm.set('constructorArguements', hex);
+            }catch(_){ altForm.set('constructorArguments',''); altForm.set('constructorArguements',''); }
+            if(variant==='v2') altForm.set('chainid', String(chain));
+            altForm.set('apikey', key);
+            const rr = await fetch(base, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:altForm.toString() });
+            let dj; try{ dj=await rr.json(); }catch(_){ dj={ status:'0', result:'json parse error'} }
+            if(String(dj.status)==='1'){
+              const g2 = dj.result; tr.querySelector('.c-status').textContent = 'GUID '+g2+' — polling...';
+              for(let i=0;i<60;i++){
+                if(cancel) break; await new Promise(r=>setTimeout(r,4000));
+                const url2 = (variant==='v2')
+                  ? `${base}?module=contract&action=checkverifystatus&guid=${encodeURIComponent(g2)}&chainid=${chain}`
+                  : `${base}?module=contract&action=checkverifystatus&guid=${encodeURIComponent(g2)}&apikey=${encodeURIComponent(key)}`;
+                const pr2 = await fetch(url2); let pd2; try{ pd2=await pr2.json(); }catch(_){ pd2={status:'0', result:'json'} }
+                const st2 = pd2.result||pd2.message||''; tr.querySelector('.c-status').textContent = st2||'...';
+                if(pd2.status==='1'){ ok=true; break; }
+                if(pd2.status==='0' && /already verified/i.test(st2)){ ok=true; break; }
+                if(pd2.status==='0' && !/Pending|In progress|Queue/i.test(st2)) break;
+              }
+              tr.querySelector('.c-status').textContent = ok? 'Верифицирован' : ('Ошибка: '+status);
+            } else {
+              tr.querySelector('.c-status').textContent = 'Ошибка: '+(dj.result||dj.message||status);
+            }
+          } else {
+            tr.querySelector('.c-status').textContent = 'Ошибка: '+status;
+          }
+        }
       }catch(e){ tr.querySelector('.c-status').textContent='Ошибка сети'; a(`${addr}: network error ${e.message}`); }
     }
     a('Готово.');
