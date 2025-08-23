@@ -1,6 +1,61 @@
 // Глобальные утилиты для всех скриптов
 function id(i){return document.getElementById(i);} // Быстрый доступ к элементу
-function log(msg, type='info'){console[type==='error'?'error':'log'](msg);} // Логгер
+// Централизованный логгер с буфером
+const __LOGS = [];
+function __pushLog(type, message){
+	const item = { ts: new Date().toISOString(), type, message: String(message) };
+	__LOGS.push(item);
+	const out = document.getElementById('log-output');
+	if(out){
+		const filter = (document.getElementById('log-filter')||{}).value||'all';
+		if(filter==='all' || filter===type){ out.textContent += `[${item.ts}] ${type.toUpperCase()}: ${item.message}\n`; out.scrollTop = out.scrollHeight; }
+		const cnt = document.getElementById('log-count'); if(cnt) cnt.textContent = `Всего: ${__LOGS.length}`;
+	}
+}
+function log(msg, type='info'){ (console[type==='error'?'error':'log'])(msg); __pushLog(type, msg); }
+
+// Перехват ошибок и предупреждений
+const __origConsoleError = console.error.bind(console);
+console.error = (...args)=>{ __origConsoleError(...args); __pushLog('error', args.map(x=> (x&&x.message)?x.message:String(x)).join(' ')); };
+const __origConsoleWarn = console.warn.bind(console);
+console.warn = (...args)=>{ __origConsoleWarn(...args); __pushLog('warn', args.map(x=> String(x)).join(' ')); };
+
+// Перехват fetch для логов
+const __origFetch = window.fetch?.bind(window);
+if(__origFetch){
+	window.fetch = async (input, init)=>{
+		try{
+			const url = (typeof input === 'string') ? input : (input && input.url) || '';
+			__pushLog('info', `fetch → ${url}`);
+			const resp = await __origFetch(input, init);
+			__pushLog(resp.ok? 'info':'error', `fetch ← ${resp.status} ${url}`);
+			return resp;
+		}catch(e){ __pushLog('error', `fetch ✖ ${e.message}`); throw e; }
+	};
+}
+
+// Привязка UI логов
+document.addEventListener('DOMContentLoaded', ()=>{
+	const out = document.getElementById('log-output'); if(!out) return;
+	const filter = document.getElementById('log-filter');
+	const clearBtn = document.getElementById('log-clear');
+	const exportBtn = document.getElementById('log-export');
+	const cnt = document.getElementById('log-count'); if(cnt) cnt.textContent = `Всего: ${__LOGS.length}`;
+	function render(){
+		const f = (filter&&filter.value)||'all';
+		out.textContent='';
+		__LOGS.forEach(item=>{ if(f==='all'||f===item.type){ out.textContent += `[${item.ts}] ${item.type.toUpperCase()}: ${item.message}\n`; } });
+		out.scrollTop = out.scrollHeight;
+		if(cnt) cnt.textContent = `Всего: ${__LOGS.length}`;
+	}
+	filter && filter.addEventListener('change', render);
+	clearBtn && clearBtn.addEventListener('click', ()=>{ __LOGS.length = 0; render(); });
+	exportBtn && exportBtn.addEventListener('click', ()=>{
+		const blob = new Blob([out.textContent], { type:'text/plain;charset=utf-8' });
+		const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `logs_${Date.now()}.txt`; a.click(); setTimeout(()=>URL.revokeObjectURL(url), 1000);
+	});
+	render();
+});
 
 // --- Глобальное состояние приложения ---
 const NETWORK_PRESETS = {
