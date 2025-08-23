@@ -57,6 +57,23 @@ document.addEventListener('DOMContentLoaded', ()=>{
 	render();
 });
 
+	// window.onerror и unhandledrejection
+	window.addEventListener('error', (e)=>{ __pushLog('error', `onerror: ${e.message||''} @ ${e.filename||''}:${e.lineno||''}`); });
+	window.addEventListener('unhandledrejection', (e)=>{ __pushLog('error', `unhandledrejection: ${e.reason && e.reason.message ? e.reason.message : String(e.reason)}`); });
+
+	// Перехват XHR
+	(function(){
+		const X = window.XMLHttpRequest; if(!X) return;
+		const open = X.prototype.open; const send = X.prototype.send;
+		X.prototype.open = function(method, url){ this.__url = url; return open.apply(this, arguments); };
+		X.prototype.send = function(){
+			const url = this.__url||''; __pushLog('info', `xhr → ${url}`);
+			this.addEventListener('load', ()=>{ __pushLog((this.status>=200&&this.status<400)?'info':'error', `xhr ← ${this.status} ${url}`); });
+			this.addEventListener('error', ()=>{ __pushLog('error', `xhr ✖ ${url}`); });
+			return send.apply(this, arguments);
+		};
+	})();
+
 // --- Глобальное состояние приложения ---
 const NETWORK_PRESETS = {
 	1: { name: 'Ethereum', rpc: 'https://rpc.ankr.com/eth' },
@@ -191,12 +208,14 @@ function bindProviderEvents(injected){
 	// Снимаем возможные дубликаты: нет стандартного off у всех провайдеров, оставим простую установку с флагом
 	if(injected.__boundEvents) return; injected.__boundEvents = true;
 	injected.on('accountsChanged', async (accounts)=>{
-		if(!accounts || !accounts.length){ disconnectWallet(); return; }
+	log('wallet accountsChanged: '+JSON.stringify(accounts));
+	if(!accounts || !accounts.length){ disconnectWallet(); return; }
 		APP_STATE.address = accounts[0]; updateWalletBadge(); if(window.__refreshWalletBalances) window.__refreshWalletBalances();
 	});
 	injected.on('chainChanged', async (_id)=>{
 		try{
 			const chainId = parseInt(_id, 16);
+	    log('wallet chainChanged: '+chainId);
 			APP_STATE.network = chainId; updateNetStatus();
 			if(window.ethers && APP_STATE.alt && APP_STATE.alt.injected){
 				APP_STATE.provider = new ethers.BrowserProvider(APP_STATE.alt.injected);
@@ -205,7 +224,7 @@ function bindProviderEvents(injected){
 			if(window.__refreshWalletBalances) window.__refreshWalletBalances();
 		}catch(_){ }
 	});
-	injected.on('disconnect', ()=>{ disconnectWallet(); });
+    injected.on('disconnect', ()=>{ log('wallet disconnect'); disconnectWallet(); });
 }
 
 async function requestAccountsWithRetry(injected, maxTries=3){
