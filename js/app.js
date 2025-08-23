@@ -661,7 +661,7 @@ id('clear-storage')?.addEventListener('click', ()=>{ localStorage.clear(); __toa
 // Инициализация полей настроек
 document.addEventListener('DOMContentLoaded', ()=>{ 
   if(id('rpc-url')) id('rpc-url').value = APP_STATE.settings.rpcUrl; 
-  if(id('api-key')) id('api-key').value = APP_STATE.settings.apiKey; 
+  // Поле ключа не заполняем, чтобы не светить в DOM
   if(id('wc-project-id')){ APP_STATE.settings.wcProjectId = localStorage.getItem('wcProjectId')||''; id('wc-project-id').value = APP_STATE.settings.wcProjectId; }
   if(id('usdt-address')) id('usdt-address').value = APP_STATE.settings.usdtAddress||'0x55d398326f99059fF775485246999027B3197955'; 
   if(id('plex-address')) id('plex-address').value = APP_STATE.settings.plexAddress||'0xdf179b6cAdBC61FFD86A3D2e55f6d6e083ade6c1'; 

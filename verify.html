@@ -11,7 +11,7 @@
 <body>
   <main class="container">
     <h1>Верификация по адресам</h1>
-    <p class="muted">Эта страница позволяет проверить и верифицировать уже созданные контракты. Ключи берутся из keys.js автоматически.</p>
+  <p class="muted">Эта страница позволяет проверить и верифицировать уже созданные контракты. Ключи подставляются автоматически, если они настроены.</p>
     <div class="section">
       <div style="margin:8px 0;">
         <label for="verify-chain" style="display:block;margin-bottom:6px;">Сеть</label>
@@ -41,7 +41,7 @@
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"
           integrity="sha384-tVisdJ1MRZqej8bqmBNU9m3Gd3FN6xhhCMSWW3eJWnpsaR2XvOQWMBY08U6BIKMw"
           crossorigin="anonymous"></script>
-  <script defer src="./keys.js?v=20250823b"></script>
+  <!-- Ключи подключаются только если нужны в основном приложении; отдельная страница не подгружает keys.js напрямую -->
   <script defer src="./js/utils.js?v=20250823a"></script>
   <script defer src="./js/verifier.js?v=20250823c"></script>
   <script defer src="./js/verify_list.js?v=20250823d"></script>

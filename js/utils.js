@@ -21,14 +21,20 @@ const __origConsoleWarn = console.warn.bind(console);
 console.warn = (...args)=>{ __origConsoleWarn(...args); __pushLog('warn', args.map(x=> String(x)).join(' ')); };
 
 // Перехват fetch для логов
+function __redactUrl(u){
+	try{
+		const s = String(u);
+		return s.replace(/([?&])(apikey|apiKey|projectId)=([^&#]*)/gi, '$1$2=***');
+	}catch(_){ return u; }
+}
 const __origFetch = window.fetch?.bind(window);
 if(__origFetch){
 	window.fetch = async (input, init)=>{
 		try{
 			const url = (typeof input === 'string') ? input : (input && input.url) || '';
-			__pushLog('info', `fetch → ${url}`);
+			__pushLog('info', `fetch → ${__redactUrl(url)}`);
 			const resp = await __origFetch(input, init);
-			__pushLog(resp.ok? 'info':'error', `fetch ← ${resp.status} ${url}`);
+			__pushLog(resp.ok? 'info':'error', `fetch ← ${resp.status} ${__redactUrl(url)}`);
 			try{
 				const u = String(url);
 			const isScan = /api\.(bscscan|etherscan)\.com\//.test(u);
@@ -92,9 +98,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
 		const open = X.prototype.open; const send = X.prototype.send;
 		X.prototype.open = function(method, url){ this.__url = url; return open.apply(this, arguments); };
 		X.prototype.send = function(){
-			const url = this.__url||''; __pushLog('info', `xhr → ${url}`);
-			this.addEventListener('load', ()=>{ __pushLog((this.status>=200&&this.status<400)?'info':'error', `xhr ← ${this.status} ${url}`); });
-			this.addEventListener('error', ()=>{ __pushLog('error', `xhr ✖ ${url}`); });
+			const url = this.__url||''; __pushLog('info', `xhr → ${__redactUrl(url)}`);
+			this.addEventListener('load', ()=>{ __pushLog((this.status>=200&&this.status<400)?'info':'error', `xhr ← ${this.status} ${__redactUrl(url)}`); });
+			this.addEventListener('error', ()=>{ __pushLog('error', `xhr ✖ ${__redactUrl(url)}`); });
 			return send.apply(this, arguments);
 		};
 	})();
@@ -331,7 +337,10 @@ function disconnectWallet(){
 
 function saveSettings(){
 	if(APP_STATE.settings.rpcUrl) localStorage.setItem('rpcUrl', APP_STATE.settings.rpcUrl);
-	if(APP_STATE.settings.apiKey) localStorage.setItem('apiKey', APP_STATE.settings.apiKey);
+	// Сохраняем ключ только если пользователь ввёл его вручную
+	if(APP_STATE.settings.apiKey && !(window.API_KEYS && (window.API_KEYS.bscscan||window.API_KEYS.etherscan))) {
+		localStorage.setItem('apiKey', APP_STATE.settings.apiKey);
+	}
 	if(APP_STATE.settings.networkId!=null) localStorage.setItem('networkId', String(APP_STATE.settings.networkId));
 	if(APP_STATE.settings.usdtAddress) localStorage.setItem('usdtAddress', APP_STATE.settings.usdtAddress);
 	if(APP_STATE.settings.plexAddress) localStorage.setItem('plexAddress', APP_STATE.settings.plexAddress);
