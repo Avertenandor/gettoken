@@ -337,6 +337,8 @@ id('token-form')?.addEventListener('submit', async (e)=>{
     log('Неподдерживаемая сеть для деплоя','error'); return;
   }
   const status = id('deploy-status');
+  // Исходник сохраняем только если был компиляционный путь
+  let savedSource = null;
   let artifact = (APP_STATE.artifacts && APP_STATE.artifacts.fixedErc20) || null;
   // Если артефакт не подгрузился заранее — пробуем подгрузить прямо сейчас
   if(!artifact || !artifact.bytecode || artifact.bytecode === '0x'){
@@ -356,6 +358,7 @@ id('token-form')?.addEventListener('submit', async (e)=>{
     // Fallback: компиляция в воркере
     log('Режим деплоя: компилятор (артефакт недоступен)');
     const source = SOURCE_TEMPLATE(name, symbol, decimals, supply.toString());
+  savedSource = source;
     const w = ensureCompiler();
     const reqId = 'cmp-'+Date.now();
     if(status) status.textContent = 'Компиляция...';
@@ -420,7 +423,7 @@ id('token-form')?.addEventListener('submit', async (e)=>{
   try { if(contract.name){ onChainName = await contract.name(); } } catch(_){ }
   try { if(contract.symbol){ onChainSymbol = await contract.symbol(); } } catch(_){ }
   try { if(contract.decimals){ onChainDecimals = Number(await contract.decimals()); } } catch(_){ }
-  APP_STATE.token = { address: contract.target, abi: result.abi, bytecode: result.bytecode, contract, params:{ name: onChainName, symbol: onChainSymbol, decimals: onChainDecimals, supply: initialSupply.toString() } };
+  APP_STATE.token = { address: contract.target, abi: result.abi, bytecode: result.bytecode, contract, params:{ name: onChainName, symbol: onChainSymbol, decimals: onChainDecimals, supply: (needsAmount && initialSupply!=null)? initialSupply.toString(): null, source: savedSource } };
     id('token-address').textContent = contract.target;
   if(link && explorerBase){ link.href = `${explorerBase}/address/${contract.target}`; link.classList.remove('hidden'); link.textContent='Explorer'; }
     id('deployed-info').classList.remove('hidden');
@@ -429,7 +432,7 @@ id('token-form')?.addEventListener('submit', async (e)=>{
     id('btn-save-passport').disabled = false;
     id('btn-save-project').disabled = false;
     id('verify-btn-manage').disabled = false;
-    APP_STATE.token.params.source = source; // сохраняем исходник
+  // исходник уже сохранён в params.source, если использовалась компиляция
     // Кнопки watchAsset / copy если есть элементы в DOM
   const watchBtn = id('watch-asset-btn');
     if(watchBtn){ watchBtn.disabled = false; watchBtn.onclick = async ()=>{
