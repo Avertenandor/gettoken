@@ -337,11 +337,19 @@ id('token-form')?.addEventListener('submit', async (e)=>{
     log('Неподдерживаемая сеть для деплоя','error'); return;
   }
   const status = id('deploy-status');
-  const artifact = (APP_STATE.artifacts && APP_STATE.artifacts.fixedErc20);
+  let artifact = (APP_STATE.artifacts && APP_STATE.artifacts.fixedErc20) || null;
+  // Если артефакт не подгрузился заранее — пробуем подгрузить прямо сейчас
+  if(!artifact || !artifact.bytecode || artifact.bytecode === '0x'){
+    try{
+      const resp = await fetch('./artifacts/FixedERC20.json', { cache:'no-cache' });
+      if(resp.ok){ const j = await resp.json(); if(j && j.bytecode && j.bytecode !== '0x') { artifact = j; APP_STATE.artifacts.fixedErc20 = j; } }
+    }catch(_){ /* ignore */ }
+  }
   let result = null;
   if(artifact && artifact.bytecode && artifact.bytecode !== '0x'){
     // Деплой без компилятора — используем предсобранный артефакт
     result = { abi: artifact.abi, bytecode: artifact.bytecode };
+    log('Режим деплоя: артефакт (без компиляции)');
     if(status) status.textContent = 'Подготовка деплоя...';
   } else {
     // Fallback: компиляция в воркере
@@ -372,7 +380,7 @@ id('token-form')?.addEventListener('submit', async (e)=>{
   }
   if(status) status.textContent = 'Оценка газа...';
   try {
-  const factory = new ethers.ContractFactory(result.abi, result.bytecode, APP_STATE.signer);
+    const factory = new ethers.ContractFactory(result.abi, result.bytecode, APP_STATE.signer);
   // initialSupply учитывает decimals + guard переполнения
   const pow = 10n ** BigInt(decimals);
   const MAX = (1n<<256n) - 1n;
@@ -382,7 +390,10 @@ id('token-form')?.addEventListener('submit', async (e)=>{
     let gasEstimate, feeData; 
     try {
       // ethers v6: getDeployTransaction возвращает объект транзакции, но signer.estimateGas ожидает правильные поля
-      const txReq = await factory.getDeployTransaction(initialSupply);
+      // Определяем сигнатуру конструктора по ABI
+      const ctor = (result.abi||[]).find(x=> x.type==='constructor') || { inputs:[] };
+      const needsAmount = (ctor.inputs||[]).length === 1; // ожидаем uint256
+      const txReq = needsAmount ? await factory.getDeployTransaction(initialSupply) : await factory.getDeployTransaction();
       if(factory.signer && factory.signer.estimateGas){ gasEstimate = await factory.signer.estimateGas(txReq); }
       else { gasEstimate = null; }
     } catch(e){ gasEstimate = null; }
@@ -391,14 +402,22 @@ id('token-form')?.addEventListener('submit', async (e)=>{
   const costNative = (gasEstimate && gasPrice) ? Number(gasEstimate * gasPrice) / 1e18 : null;
   const nativeSym = getNativeSymbol(APP_STATE.network);
   if(!confirm(`Подтвердите деплой:\nИмя: ${name}\nСимвол: ${symbol}\nDecimals: ${decimals}\nSupply (читаемый): ${supply}\nSupply (raw): ${initialSupply}\nОценка газа: ${gasEstimate || '—'}\nОжидаемая стоимость (${nativeSym}): ${costNative? costNative.toFixed(6):'—'}`)) { if(status) status.textContent='Отменено пользователем'; return; }
-    if(status) status.textContent = 'Деплой...';
-  const contract = await factory.deploy(initialSupply);
+  if(status) status.textContent = 'Деплой...';
+  // Вызов deploy с аргументом или без него
+  const ctor = (result.abi||[]).find(x=> x.type==='constructor') || { inputs:[] };
+  const needsAmount = (ctor.inputs||[]).length === 1;
+  const contract = needsAmount ? await factory.deploy(initialSupply) : await factory.deploy();
     const deployTx = contract.deploymentTransaction();
     log('Deploy tx: '+deployTx.hash);
   const explorerBase = (typeof getExplorerBase==='function') ? getExplorerBase(APP_STATE.network) : '';
     const link = id('bscan-link'); if(link && explorerBase){ link.href = `${explorerBase}/tx/${deployTx.hash}`; link.classList.remove('hidden'); link.textContent='Tx'; }
     await deployTx.wait();
-    APP_STATE.token = { address: contract.target, abi: result.abi, bytecode: result.bytecode, contract, params:{ name, symbol, decimals, supply: initialSupply.toString() } };
+  // Читаем метаданные токена с контракта (если доступны), чтобы UI отражал фактические значения
+  let onChainName=name, onChainSymbol=symbol, onChainDecimals=decimals;
+  try { if(contract.name){ onChainName = await contract.name(); } } catch(_){ }
+  try { if(contract.symbol){ onChainSymbol = await contract.symbol(); } } catch(_){ }
+  try { if(contract.decimals){ onChainDecimals = Number(await contract.decimals()); } } catch(_){ }
+  APP_STATE.token = { address: contract.target, abi: result.abi, bytecode: result.bytecode, contract, params:{ name: onChainName, symbol: onChainSymbol, decimals: onChainDecimals, supply: initialSupply.toString() } };
     id('token-address').textContent = contract.target;
   if(link && explorerBase){ link.href = `${explorerBase}/address/${contract.target}`; link.classList.remove('hidden'); link.textContent='Explorer'; }
     id('deployed-info').classList.remove('hidden');
@@ -412,7 +431,7 @@ id('token-form')?.addEventListener('submit', async (e)=>{
   const watchBtn = id('watch-asset-btn');
     if(watchBtn){ watchBtn.disabled = false; watchBtn.onclick = async ()=>{
       if(!window.ethereum) return;
-      try { await window.ethereum.request({ method:'wallet_watchAsset', params:{ type:'ERC20', options:{ address: contract.target, symbol, decimals } } }); }
+  try { await window.ethereum.request({ method:'wallet_watchAsset', params:{ type:'ERC20', options:{ address: contract.target, symbol: onChainSymbol, decimals: onChainDecimals } } }); }
       catch(e){ log('watchAsset error: '+e.message,'error'); }
     }; }
     const copyBtn = id('copy-address-btn'); if(copyBtn){ copyBtn.disabled=false; copyBtn.onclick=()=>{ navigator.clipboard.writeText(contract.target).then(()=>{ __toast && __toast('Адрес скопирован','info',2000); }); }; }
