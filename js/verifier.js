@@ -4,7 +4,8 @@
 let __verifyCancel = false;
 async function verifyContract(){
 	if(!APP_STATE.token || !APP_STATE.token.address){ log('Нет токена для верификации','error'); return; }
-	if(!APP_STATE.settings.apiKey){ log('Нет API ключа','error'); id('verify-status').textContent='Укажите API ключ в настройках'; return; }
+	const preKey = (window.API_KEYS && (window.API_KEYS.bscscan||window.API_KEYS.etherscan)) || APP_STATE.settings.apiKey;
+	if(!preKey){ log('Нет API ключа','error'); const el=id('verify-status'); if(el) el.textContent='Не найден API ключ (keys.js или настройки)'; return; }
 	__verifyCancel = false;
 	const statusEl = id('verify-status'); if(statusEl) statusEl.textContent='Отправка на верификацию...';
 	const cancelBtn = document.getElementById('verify-cancel-btn'); if(cancelBtn) cancelBtn.disabled=false;
@@ -54,12 +55,10 @@ function encodeConstructorArgs(abi, p){
 		const inputs = ctor.inputs||[];
 		if(!inputs.length) return '';
 		const types = inputs.map(i=> i.type);
+		let strIdx = 0;
 		const values = inputs.map(i=>{
 			if(i.type==='string'){
-				// Первые два string: name, symbol
-				// Берём по очереди
-				if(!this.___strIndex) this.___strIndex = 0;
-				const v = (this.___strIndex++ === 0) ? (p?.name||'Token') : (p?.symbol||'TKN');
+				const v = (strIdx++ === 0) ? (p?.name||'Token') : (p?.symbol||'TKN');
 				return v;
 			}
 			if(i.type==='uint8') return Number(p?.decimals||18);
