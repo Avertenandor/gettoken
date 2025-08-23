@@ -18,7 +18,7 @@ const APP_STATE = {
 	alt: { connected: false },
 	settings: {
 		rpcUrl: localStorage.getItem('rpcUrl')||'',
-		apiKey: localStorage.getItem('apiKey')||'',
+	apiKey: (window.API_KEYS && (window.API_KEYS.bscscan||window.API_KEYS.etherscan)) || localStorage.getItem('apiKey')||'',
 		networkId: 56, // только BSC
 		usdtAddress: localStorage.getItem('usdtAddress')||'0x55d398326f99059fF775485246999027B3197955',
 		plexAddress: localStorage.getItem('plexAddress')||'0xdf179b6cAdBC61FFD86A3D2e55f6d6e083ade6c1',

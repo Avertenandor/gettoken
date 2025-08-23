@@ -15,7 +15,8 @@ async function verifyContract(){
 		const source = params.source; // сохранённый полный исходник
 		if(!source){ throw new Error('Нет исходника для верификации'); }
 		const form = new URLSearchParams();
-		form.set('apikey', APP_STATE.settings.apiKey);
+		const autoKey = (window.API_KEYS && (window.API_KEYS.bscscan||window.API_KEYS.etherscan)) || APP_STATE.settings.apiKey;
+		form.set('apikey', autoKey);
 		form.set('chainid', String(chainid));
 		form.set('module','contract');
 		form.set('action','verifysourcecode');
@@ -28,7 +29,7 @@ async function verifyContract(){
 		form.set('runs','200');
 		form.set('licenseType','3');
 		form.set('constructorArguments', encodeConstructorArgs(params));
-		const apiBase = 'https://api.etherscan.io/v2/api';
+		const apiBase = (Number(chainid)===56||Number(chainid)===97) ? 'https://api.bscscan.com/v2/api' : 'https://api.etherscan.io/v2/api';
 		const resp = await fetch(apiBase, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:form.toString() });
 		const data = await resp.json();
 		if(data.status!=='1'){ throw new Error(data.result||data.message||'submit error'); }
@@ -48,7 +49,7 @@ async function verifyContract(){
 
 function encodeConstructorArgs(p){
 	if(!p || !p.supply) return '';
-	// Конструктор (uint256 initialSupply)
+	// Конструктор (string,string,uint8,uint256) — кодируем только последний uint256
 	const hex = BigInt(p.supply).toString(16);
 	return hex.padStart(64,'0');
 }

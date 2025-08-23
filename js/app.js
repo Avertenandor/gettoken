@@ -316,6 +316,86 @@ const SOURCE_TEMPLATE = (name, symbol, decimals, supply) => {
   return `// SPDX-License-Identifier: MIT\npragma solidity ^0.8.24;\n/**\n * Fixed-supply ERC20 minimal implementation (mint all in constructor).\n */\ncontract ${contractId} {\n    string public name = '${name}';\n    string public symbol = '${symbol}';\n    uint8 public decimals = ${decimals};\n    uint256 public totalSupply;\n    mapping(address => uint256) public balanceOf;\n    mapping(address => mapping(address => uint256)) public allowance;\n    event Transfer(address indexed from, address indexed to, uint256 value);\n    event Approval(address indexed owner, address indexed spender, uint256 value);\n    constructor(uint256 initialSupply){\n        totalSupply = initialSupply;\n        balanceOf[msg.sender] = initialSupply;\n        emit Transfer(address(0), msg.sender, initialSupply);\n    }\n    function _transfer(address from, address to, uint256 value) internal {\n        require(to != address(0), 'to=0');\n        uint256 bal = balanceOf[from];\n        require(bal >= value, 'bal');\n        unchecked { balanceOf[from] = bal - value; balanceOf[to] += value; }\n        emit Transfer(from, to, value);\n    }\n    function transfer(address to, uint256 value) external returns (bool){ _transfer(msg.sender, to, value); return true; }\n    function approve(address spender, uint256 value) external returns (bool){ allowance[msg.sender][spender] = value; emit Approval(msg.sender, spender, value); return true; }\n    function transferFrom(address from, address to, uint256 value) external returns (bool){ uint256 a = allowance[from][msg.sender]; require(a >= value, 'allow'); if(a != type(uint256).max){ unchecked { allowance[from][msg.sender] = a - value; } emit Approval(from, msg.sender, allowance[from][msg.sender]); } _transfer(from, to, value); return true; }\n    function increaseAllowance(address spender, uint256 added) external returns (bool){ uint256 cur = allowance[msg.sender][spender]; uint256 nv = cur + added; allowance[msg.sender][spender] = nv; emit Approval(msg.sender, spender, nv); return true; }\n    function decreaseAllowance(address spender, uint256 sub) external returns (bool){ uint256 cur = allowance[msg.sender][spender]; require(cur >= sub, 'under'); uint256 nv = cur - sub; allowance[msg.sender][spender] = nv; emit Approval(msg.sender, spender, nv); return true; }\n}`;
 };
 
+// Полный исходник контракта для артефакта (конструктор: string,string,uint8,uint256)
+const CONFIG_ERC20_SOURCE = `// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+error TransferToZeroAddress();
+error InsufficientBalance(uint256 available, uint256 required);
+error ExceedsAllowance(uint256 available, uint256 required);
+error DecreasedAllowanceBelowZero(uint256 current, uint256 decrease);
+
+contract ConfigERC20 {
+  string private _name;
+  string private _symbol;
+  uint8  private immutable _decimals;
+
+  uint256 public totalSupply;
+  mapping(address => uint256) public balanceOf;
+  mapping(address => mapping(address => uint256)) public allowance;
+
+  event Transfer(address indexed from, address indexed to, uint256 value);
+  event Approval(address indexed owner, address indexed spender, uint256 value);
+
+  constructor(string memory name_, string memory symbol_, uint8 decimals_, uint256 initialSupply_) {
+    _name = name_;
+    _symbol = symbol_;
+    _decimals = decimals_;
+    totalSupply = initialSupply_;
+    balanceOf[msg.sender] = initialSupply_;
+    emit Transfer(address(0), msg.sender, initialSupply_);
+  }
+
+  function name() public view returns (string memory) { return _name; }
+  function symbol() public view returns (string memory) { return _symbol; }
+  function decimals() public view returns (uint8) { return _decimals; }
+
+  function transfer(address to, uint256 value) external returns (bool) {
+    if (to == address(0)) revert TransferToZeroAddress();
+    uint256 senderBalance = balanceOf[msg.sender];
+    if (senderBalance < value) revert InsufficientBalance(senderBalance, value);
+    unchecked { balanceOf[msg.sender] = senderBalance - value; balanceOf[to] += value; }
+    emit Transfer(msg.sender, to, value);
+    return true;
+  }
+
+  function approve(address spender, uint256 value) external returns (bool) {
+    allowance[msg.sender][spender] = value;
+    emit Approval(msg.sender, spender, value);
+    return true;
+  }
+
+  function transferFrom(address from, address to, uint256 value) external returns (bool) {
+    if (to == address(0)) revert TransferToZeroAddress();
+    uint256 fromBalance = balanceOf[from];
+    if (fromBalance < value) revert InsufficientBalance(fromBalance, value);
+    uint256 currentAllowance = allowance[from][msg.sender];
+    if (currentAllowance < value) revert ExceedsAllowance(currentAllowance, value);
+    unchecked {
+      balanceOf[from] = fromBalance - value;
+      allowance[from][msg.sender] = currentAllowance - value;
+      balanceOf[to] += value;
+    }
+    emit Transfer(from, to, value);
+    emit Approval(from, msg.sender, allowance[from][msg.sender]);
+    return true;
+  }
+
+  function increaseAllowance(address spender, uint256 addedValue) external returns (bool) {
+    allowance[msg.sender][spender] += addedValue;
+    emit Approval(msg.sender, spender, allowance[msg.sender][spender]);
+    return true;
+  }
+
+  function decreaseAllowance(address spender, uint256 subtractedValue) external returns (bool) {
+    uint256 current = allowance[msg.sender][spender];
+    if (current < subtractedValue) revert DecreasedAllowanceBelowZero(current, subtractedValue);
+    unchecked { allowance[msg.sender][spender] = current - subtractedValue; }
+    emit Approval(msg.sender, spender, allowance[msg.sender][spender]);
+    return true;
+  }
+}`;
+
 let compilerWorker = null;
 function ensureCompiler(){
   if(compilerWorker) return compilerWorker;
@@ -356,7 +436,7 @@ id('token-form')?.addEventListener('submit', async (e)=>{
     if(status) status.textContent = 'Подготовка деплоя...';
   // UI: показываем, что decimals/supply фиксированы для текущего шаблона
     // Включим/выключим поля в зависимости от конструктора артефакта
-    try{
+  try{
       const ctor = (artifact.abi||[]).find(x=> x.type==='constructor') || { inputs:[] };
       const needs = (ctor.inputs||[]).map(inp=> inp.type);
       const hint = id('fixed-artifact-hint');
@@ -371,7 +451,9 @@ id('token-form')?.addEventListener('submit', async (e)=>{
         if(decEl){ decEl.disabled = false; decEl.title = ''; }
         if(supEl){ supEl.disabled = false; supEl.title = ''; }
       }
-    }catch(_){ }
+  }catch(_){ }
+  // Для верификации сохраним исходник контракта
+  savedSource = (artifact && artifact.source) ? artifact.source : CONFIG_ERC20_SOURCE;
   } else {
     // Fallback: компиляция в воркере
     log('Режим деплоя: компилятор (артефакт недоступен)');
@@ -473,6 +555,13 @@ id('token-form')?.addEventListener('submit', async (e)=>{
   if(status) status.textContent = 'Токен создан';
     __toast && __toast('Токен создан','info',4000);
     refreshBalance();
+  // Автоверификация, если есть ключ
+  try{
+    const autoKey = (window.API_KEYS && (window.API_KEYS.bscscan||window.API_KEYS.etherscan)) || (APP_STATE.settings && APP_STATE.settings.apiKey);
+    if(autoKey && typeof __verifyContract==='function'){
+      await __verifyContract();
+    }
+  }catch(_){ }
   } catch(e){
     log('Ошибка деплоя: '+e.message,'error'); if(status) status.textContent = 'Ошибка деплоя: '+e.message; }
 });
