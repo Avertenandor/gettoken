@@ -87,13 +87,20 @@
       const name = (meta.ok && meta.name) ? meta.name : symbol; // если name не доступен — берём symbol
       const totalSupply = (meta.ok && meta.totalSupply!=null) ? meta.totalSupply : 0n;
       const supply = 0n; // параметр шаблона SOURCE_TEMPLATE не используется здесь
-  const source = (window.CONFIG_ERC20_SOURCE) ? window.CONFIG_ERC20_SOURCE : (typeof SOURCE_TEMPLATE==='function'? SOURCE_TEMPLATE(name,symbol,decimals,String(supply)) : '');
+      const source = (window.CONFIG_ERC20_SOURCE) ? window.CONFIG_ERC20_SOURCE : (typeof SOURCE_TEMPLATE==='function'? SOURCE_TEMPLATE(name,symbol,decimals,String(supply)) : '');
       const contractName = (source.match(/contract\s+([A-Za-z0-9_]+)/)||[])[1] || 'ConfigERC20';
+      const fileName = `${contractName}.sol`;
+      const stdJson = {
+        language: 'Solidity',
+        sources: { [fileName]: { content: source } },
+        settings: { optimizer: { enabled: true, runs: 200 }, viaIR: false, evmVersion: 'default', metadata: { bytecodeHash: 'ipfs' } }
+      };
       const { base, variant } = getApi(chain);
       const key = (window.API_KEYS && (window.API_KEYS.bscscan||window.API_KEYS.etherscan)) || (window.APP_STATE?.settings?.apiKey)||'';
-      const form = new URLSearchParams();
-      form.set('module','contract'); form.set('action','verifysourcecode'); form.set('contractaddress', addr);
-      form.set('sourceCode', source); form.set('codeformat','solidity-single-file'); form.set('contractname', contractName);
+  const form = new URLSearchParams();
+  form.set('module','contract'); form.set('action','verifysourcecode'); form.set('contractaddress', addr);
+  form.set('sourceCode', JSON.stringify(stdJson)); form.set('codeformat','solidity-standard-json-input');
+  form.set('contractname', `${fileName}:${contractName}`);
   form.set('compilerversion','v0.8.24+commit.e11b9ed9'); form.set('optimizationUsed','1'); form.set('runs','200'); form.set('licenseType','3');
       // Кодируем аргументы конструктора как в артефакте: (string,string,uint8,uint256) => (name,symbol,decimals,totalSupply)
       try{
@@ -130,9 +137,11 @@
             const sanitized = (symbol||'TKN').replace(/[^A-Za-z0-9_]/g,'');
             const cname = (/^[0-9]/.test(sanitized) ? '_'+sanitized : sanitized) || 'Token';
             const altSource = (typeof SOURCE_TEMPLATE==='function') ? SOURCE_TEMPLATE(name||symbol||'Token', symbol||'TKN', decimals||18, (totalSupply||0n).toString()) : '';
+            const altFile = `${cname}.sol`;
+            const altJson = { language:'Solidity', sources:{ [altFile]:{ content: altSource } }, settings:{ optimizer:{enabled:true,runs:200}, viaIR:false, evmVersion:'default', metadata:{ bytecodeHash:'ipfs' } } };
             const altForm = new URLSearchParams();
             altForm.set('module','contract'); altForm.set('action','verifysourcecode'); altForm.set('contractaddress', addr);
-            altForm.set('sourceCode', altSource); altForm.set('codeformat','solidity-single-file'); altForm.set('contractname', cname);
+            altForm.set('sourceCode', JSON.stringify(altJson)); altForm.set('codeformat','solidity-standard-json-input'); altForm.set('contractname', `${altFile}:${cname}`);
             altForm.set('compilerversion','v0.8.24+commit.e11b9ed9'); altForm.set('optimizationUsed','1'); altForm.set('runs','200'); altForm.set('licenseType','3');
             try{
               const coder = (ethers && ethers.AbiCoder && ethers.AbiCoder.defaultAbiCoder) ? ethers.AbiCoder.defaultAbiCoder() : new ethers.AbiCoder();
