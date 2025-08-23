@@ -27,6 +27,7 @@
     "url": "https://github.com/Avertenandor/gettoken.git"
   },
   "homepage": "https://gettoken.nl",
-  "devDependencies": {},
-  "dependencies": {}
+  "dependencies": {
+    "solc": "^0.8.24"
+  }
 }

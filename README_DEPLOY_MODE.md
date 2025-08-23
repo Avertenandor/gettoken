@@ -1,6 +1,6 @@
 # Режим деплоя без компиляции
 
-- Файл артефакта: `artifacts/FixedERC20.json`
+- Файл артефакта: `artifacts/FixedERC20.json` (уже заполнен ABI и bytecode PLEXOneToken)
 - Если `bytecode` != `0x`, сайт будет деплоить токен напрямую по ABI/bytecode без вызова компилятора в браузере.
 - Если `bytecode` = `0x`, включится прежний fallback — компиляция через `js/compiler.worker.js`.
 
