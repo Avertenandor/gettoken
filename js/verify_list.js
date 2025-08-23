@@ -38,14 +38,18 @@
     try{
       const provider = window.APP_STATE?.provider || new ethers.JsonRpcProvider((window.NETWORK_PRESETS && window.NETWORK_PRESETS[chain]?.rpc) || '');
       const erc = new ethers.Contract(addr, [
+        'function name() view returns (string)',
         'function symbol() view returns (string)',
-        'function decimals() view returns (uint8)'
+        'function decimals() view returns (uint8)',
+        'function totalSupply() view returns (uint256)'
       ], provider);
-      const [sym, dec] = await Promise.all([
+      const [nm, sym, dec, ts] = await Promise.all([
+        erc.name().catch(()=>''),
         erc.symbol().catch(()=>''),
-        erc.decimals().then(n=> Number(n)).catch(()=>null)
+        erc.decimals().then(n=> Number(n)).catch(()=>null),
+        erc.totalSupply().catch(()=>null)
       ]);
-      return { ok:true, symbol: sym||'', decimals: (dec??'') };
+      return { ok:true, name: nm||'', symbol: sym||'', decimals: (dec??''), totalSupply: ts };
     }catch(e){ return { ok:false, error:e.message } }
   }
   async function fetchDeployBytecode(addr, chain){
@@ -77,11 +81,12 @@
       if(abiInfo.ok && abiInfo.abi && abiInfo.abi !== 'Contract source code not verified'){ tr.querySelector('.c-status').textContent='Уже верифицирован'; continue; }
       a(`${addr}: не верифицирован, пытаюсь верифицировать...`);
   // Попробуем получить on-chain meta (symbol/decimals)
-  const meta = await fetchContractMeta(addr, chain);
-  const symbol = meta.ok && meta.symbol ? meta.symbol : 'TKN';
-  const decimals = meta.ok && (meta.decimals!=null) ? Number(meta.decimals) : 18;
-  const name = symbol; // чаще всего имя и символ совпадают у наших шаблонов
-  const supply = 0n; // неизвестно — это не влияет на runtime
+      const meta = await fetchContractMeta(addr, chain);
+      const symbol = meta.ok && meta.symbol ? meta.symbol : 'TKN';
+      const decimals = meta.ok && (meta.decimals!=null) ? Number(meta.decimals) : 18;
+      const name = (meta.ok && meta.name) ? meta.name : symbol; // если name не доступен — берём symbol
+      const totalSupply = (meta.ok && meta.totalSupply!=null) ? meta.totalSupply : 0n;
+      const supply = 0n; // параметр шаблона SOURCE_TEMPLATE не используется здесь
   const source = (window.CONFIG_ERC20_SOURCE) ? window.CONFIG_ERC20_SOURCE : (typeof SOURCE_TEMPLATE==='function'? SOURCE_TEMPLATE(name,symbol,decimals,String(supply)) : '');
       const contractName = (source.match(/contract\s+([A-Za-z0-9_]+)/)||[])[1] || 'ConfigERC20';
       const { base, variant } = getApi(chain);
@@ -90,8 +95,13 @@
       form.set('module','contract'); form.set('action','verifysourcecode'); form.set('contractaddress', addr);
       form.set('sourceCode', source); form.set('codeformat','solidity-single-file'); form.set('contractname', contractName);
   form.set('compilerversion','v0.8.24+commit.e11b9ed9'); form.set('optimizationUsed','1'); form.set('runs','200'); form.set('licenseType','3');
-  // Параметры конструктора не нужны для runtime‑сравнения, но передадим пустые — мы не знаем исходный выпуск.
-  form.set('constructorArguments',''); form.set('constructorArguements','');
+      // Кодируем аргументы конструктора как в артефакте: (string,string,uint8,uint256) => (name,symbol,decimals,totalSupply)
+      try{
+        const coder = (ethers && ethers.AbiCoder && ethers.AbiCoder.defaultAbiCoder) ? ethers.AbiCoder.defaultAbiCoder() : new ethers.AbiCoder();
+        const encoded = coder.encode(['string','string','uint8','uint256'], [name, symbol, decimals, totalSupply||0n]);
+        const hex = encoded.startsWith('0x') ? encoded.slice(2) : encoded;
+        form.set('constructorArguments', hex); form.set('constructorArguements', hex);
+      }catch(_){ form.set('constructorArguments',''); form.set('constructorArguements',''); }
       if(variant==='v2') form.set('chainid', String(chain));
       form.set('apikey', key);
       try{
