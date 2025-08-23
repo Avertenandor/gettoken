@@ -355,9 +355,23 @@ id('token-form')?.addEventListener('submit', async (e)=>{
     log('Режим деплоя: артефакт (без компиляции)');
     if(status) status.textContent = 'Подготовка деплоя...';
   // UI: показываем, что decimals/supply фиксированы для текущего шаблона
-  const hint = id('fixed-artifact-hint'); if(hint) hint.style.display = '';
-  const decEl = id('token-decimals'); if(decEl) { decEl.disabled = true; decEl.title = 'Фиксировано в шаблоне'; }
-  const supEl = id('token-supply'); if(supEl) { supEl.disabled = true; supEl.title = 'Фиксировано в шаблоне'; }
+    // Включим/выключим поля в зависимости от конструктора артефакта
+    try{
+      const ctor = (artifact.abi||[]).find(x=> x.type==='constructor') || { inputs:[] };
+      const needs = (ctor.inputs||[]).map(inp=> inp.type);
+      const hint = id('fixed-artifact-hint');
+      const decEl = id('token-decimals');
+      const supEl = id('token-supply');
+      if(needs.length===0){
+        if(hint) hint.style.display = '';
+        if(decEl){ decEl.disabled = true; decEl.title = 'Фиксировано в шаблоне'; }
+        if(supEl){ supEl.disabled = true; supEl.title = 'Фиксировано в шаблоне'; }
+      } else {
+        if(hint) hint.style.display = 'none';
+        if(decEl){ decEl.disabled = false; decEl.title = ''; }
+        if(supEl){ supEl.disabled = false; supEl.title = ''; }
+      }
+    }catch(_){ }
   } else {
     // Fallback: компиляция в воркере
     log('Режим деплоя: компилятор (артефакт недоступен)');
@@ -395,15 +409,22 @@ id('token-form')?.addEventListener('submit', async (e)=>{
     const factory = new ethers.ContractFactory(result.abi, result.bytecode, APP_STATE.signer);
     // Определяем параметры конструктора и формируем deployArgs
     const ctor = (result.abi||[]).find(x=> x.type==='constructor') || { inputs:[] };
-    const needsAmount = ((ctor.inputs||[]).length >= 1);
+    const inputs = (ctor.inputs||[]);
     let deployArgs = [];
     let initialSupply = null;
-    if(needsAmount){
+    if(inputs.length>0){
+      // Поддержка общих кейсов: string,string,uint8,uint256
       const pow = 10n ** BigInt(decimals);
       const MAX = (1n<<256n) - 1n;
       if(supply > MAX / pow){ log('Переполнение: слишком большой выпуск при данных decimals','error'); return; }
       initialSupply = supply * pow;
-      deployArgs = [ initialSupply ];
+      for(const inp of inputs){
+        if(inp.type==='string' && deployArgs.length===0){ deployArgs.push(name); }
+        else if(inp.type==='string'){ deployArgs.push(symbol); }
+        else if(inp.type==='uint8'){ deployArgs.push(decimals); }
+        else if(inp.type==='uint256'){ deployArgs.push(initialSupply); }
+        else { log('Неподдерживаемый тип параметра конструктора: '+inp.type,'error'); return; }
+      }
     }
     // Оценка газа
     let gasEstimate, feeData; 
@@ -416,7 +437,7 @@ id('token-form')?.addEventListener('submit', async (e)=>{
     const gasPrice = (feeData && (feeData.gasPrice || feeData.maxFeePerGas)) ? (feeData.gasPrice || feeData.maxFeePerGas) : 0n;
     const costNative = (gasEstimate && gasPrice) ? Number(gasEstimate * gasPrice) / 1e18 : null;
     const nativeSym = getNativeSymbol(APP_STATE.network);
-    const supplyBlock = needsAmount ? `\nSupply (читаемый): ${supply}\nSupply (raw): ${initialSupply}` : '';
+  const supplyBlock = (inputs.some(i=>i.type==='uint256')) ? `\nSupply (читаемый): ${supply}\nSupply (raw): ${initialSupply}` : '';
     if(!confirm(`Подтвердите деплой:\nИмя: ${name}\nСимвол: ${symbol}\nDecimals: ${decimals}${supplyBlock}\nОценка газа: ${gasEstimate || '—'}\nОжидаемая стоимость (${nativeSym}): ${costNative? costNative.toFixed(6):'—'}`)) { if(status) status.textContent='Отменено пользователем'; return; }
     if(status) status.textContent = 'Деплой...';
     const contract = await factory.deploy(...deployArgs);
@@ -430,7 +451,7 @@ id('token-form')?.addEventListener('submit', async (e)=>{
   try { if(contract.name){ onChainName = await contract.name(); } } catch(_){ }
   try { if(contract.symbol){ onChainSymbol = await contract.symbol(); } } catch(_){ }
   try { if(contract.decimals){ onChainDecimals = Number(await contract.decimals()); } } catch(_){ }
-  APP_STATE.token = { address: contract.target, abi: result.abi, bytecode: result.bytecode, contract, params:{ name: onChainName, symbol: onChainSymbol, decimals: onChainDecimals, supply: (needsAmount && initialSupply!=null)? initialSupply.toString(): null, source: savedSource } };
+  APP_STATE.token = { address: contract.target, abi: result.abi, bytecode: result.bytecode, contract, params:{ name: onChainName, symbol: onChainSymbol, decimals: onChainDecimals, supply: (inputs.some(i=>i.type==='uint256') && initialSupply!=null)? initialSupply.toString(): null, source: savedSource } };
     id('token-address').textContent = contract.target;
   if(link && explorerBase){ link.href = `${explorerBase}/address/${contract.target}`; link.classList.remove('hidden'); link.textContent='Explorer'; }
     id('deployed-info').classList.remove('hidden');
