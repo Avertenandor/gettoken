@@ -24,6 +24,7 @@ const APP_STATE = {
 		plexAddress: localStorage.getItem('plexAddress')||'0xdf179b6cAdBC61FFD86A3D2e55f6d6e083ade6c1',
 		wcProjectId: localStorage.getItem('wcProjectId')||''
 	},
+	artifacts: { fixedErc20: null },
 	token: { address:null, abi:null, bytecode:null, contract:null, params:null },
 	batch: { list:[], running:false }
 };
@@ -261,3 +262,6 @@ window.updateWalletBadge = updateWalletBadge;
 window.updateNetStatus = updateNetStatus;
 window.getExplorerBase = getExplorerBase;
 window.getNativeSymbol = getNativeSymbol;
+
+// Предзагрузка артефактов (без критичности)
+fetch('./artifacts/FixedERC20.json').then(r=> r.ok? r.json(): null).then(j=>{ if(j) APP_STATE.artifacts.fixedErc20 = j; }).catch(()=>{});

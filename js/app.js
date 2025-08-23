@@ -336,35 +336,43 @@ id('token-form')?.addEventListener('submit', async (e)=>{
   if(![56,97,1,11155111].includes(APP_STATE.network||0)){
     log('Неподдерживаемая сеть для деплоя','error'); return;
   }
-  const source = SOURCE_TEMPLATE(name, symbol, decimals, supply.toString());
-  const w = ensureCompiler();
-  const reqId = 'cmp-'+Date.now();
-  const status = id('deploy-status'); if(status) status.textContent = 'Компиляция...';
-  const result = await new Promise((resolve,reject)=>{
-    const to = setTimeout(()=>{ reject(new Error('Компилятор не ответил (timeout)')); }, 20000);
-    function handler(ev){ if(ev.data.id===reqId){ clearTimeout(to); w.removeEventListener('message', handler); ev.data.ok? resolve(ev.data.result): reject(new Error(ev.data.error)); } }
-    w.addEventListener('message', handler);
-    // Быстрый ping, чтобы прогреть воркер
-    try{ w.postMessage({ id:'ping-'+reqId, cmd:'ping' }); }catch(_){ }
-    w.postMessage({ id:reqId, cmd:'compile', payload:{ source, optimize:true, version:'v0.8.24+commit.e11b9ed9' } });
-  }).catch(async e=>{
-    log('Ошибка компиляции: '+e.message,'error');
-    // Авто-фоллбек на более свежую версию solc
-    const altId = reqId+'-alt';
-    try{
-      const res2 = await new Promise((resolve2,reject2)=>{
-        const to2 = setTimeout(()=>{ reject2(new Error('Компилятор (alt) не ответил')); }, 20000);
-        function h2(ev){ if(ev.data.id===altId){ clearTimeout(to2); w.removeEventListener('message', h2); ev.data.ok? resolve2(ev.data.result): reject2(new Error(ev.data.error)); } }
-        w.addEventListener('message', h2);
-        w.postMessage({ id:altId, cmd:'compile', payload:{ source, optimize:true, version:'v0.8.26+commit.8a97fa17' } });
-      });
-      return res2;
-    }catch(e2){ log('Ошибка компиляции (alt): '+e2.message,'error'); return null; }
-  });
-  if(!result || !result.abi || !result.bytecode){ log('Компилятор вернул пустой результат','error'); if(status) status.textContent='Ошибка компиляции'; return; }
+  const status = id('deploy-status');
+  const artifact = (APP_STATE.artifacts && APP_STATE.artifacts.fixedErc20);
+  let result = null;
+  if(artifact && artifact.bytecode && artifact.bytecode !== '0x'){
+    // Деплой без компилятора — используем предсобранный артефакт
+    result = { abi: artifact.abi, bytecode: artifact.bytecode };
+    if(status) status.textContent = 'Подготовка деплоя...';
+  } else {
+    // Fallback: компиляция в воркере
+    const source = SOURCE_TEMPLATE(name, symbol, decimals, supply.toString());
+    const w = ensureCompiler();
+    const reqId = 'cmp-'+Date.now();
+    if(status) status.textContent = 'Компиляция...';
+    result = await new Promise((resolve,reject)=>{
+      const to = setTimeout(()=>{ reject(new Error('Компилятор не ответил (timeout)')); }, 20000);
+      function handler(ev){ if(ev.data.id===reqId){ clearTimeout(to); w.removeEventListener('message', handler); ev.data.ok? resolve(ev.data.result): reject(new Error(ev.data.error)); } }
+      w.addEventListener('message', handler);
+      try{ w.postMessage({ id:'ping-'+reqId, cmd:'ping' }); }catch(_){ }
+      w.postMessage({ id:reqId, cmd:'compile', payload:{ source, optimize:true, version:'v0.8.24+commit.e11b9ed9' } });
+    }).catch(async e=>{
+      log('Ошибка компиляции: '+e.message,'error');
+      const altId = reqId+'-alt';
+      try{
+        const res2 = await new Promise((resolve2,reject2)=>{
+          const to2 = setTimeout(()=>{ reject2(new Error('Компилятор (alt) не ответил')); }, 20000);
+          function h2(ev){ if(ev.data.id===altId){ clearTimeout(to2); w.removeEventListener('message', h2); ev.data.ok? resolve2(ev.data.result): reject2(new Error(ev.data.error)); } }
+          w.addEventListener('message', h2);
+          w.postMessage({ id:altId, cmd:'compile', payload:{ source, optimize:true, version:'v0.8.26+commit.8a97fa17' } });
+        });
+        return res2;
+      }catch(e2){ log('Ошибка компиляции (alt): '+e2.message,'error'); return null; }
+    });
+    if(!result || !result.abi || !result.bytecode){ log('Компилятор вернул пустой результат','error'); if(status) status.textContent='Ошибка компиляции'; return; }
+  }
   if(status) status.textContent = 'Оценка газа...';
   try {
-    const factory = new ethers.ContractFactory(result.abi, result.bytecode, APP_STATE.signer);
+  const factory = new ethers.ContractFactory(result.abi, result.bytecode, APP_STATE.signer);
   // initialSupply учитывает decimals + guard переполнения
   const pow = 10n ** BigInt(decimals);
   const MAX = (1n<<256n) - 1n;
