@@ -428,8 +428,9 @@ id('token-form')?.addEventListener('submit', async (e)=>{
       if(resp.ok){ const j = await resp.json(); if(j && j.bytecode && j.bytecode !== '0x') { artifact = j; APP_STATE.artifacts.fixedErc20 = j; } else { log('Артефакт загружен, но bytecode отсутствует или пуст (0x)', 'error'); } }
     }catch(e){ log('Ошибка загрузки артефакта: '+(e?.message||e), 'error'); }
   }
+  const forceCompile = !!document.getElementById('compile-as-symbol')?.checked;
   let result = null;
-  if(artifact && artifact.bytecode && artifact.bytecode !== '0x'){
+  if(!forceCompile && artifact && artifact.bytecode && artifact.bytecode !== '0x'){
     // Деплой без компилятора — используем предсобранный артефакт
     result = { abi: artifact.abi, bytecode: artifact.bytecode };
     log('Режим деплоя: артефакт (без компиляции)');
