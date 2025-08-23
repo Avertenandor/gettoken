@@ -21,6 +21,16 @@
     if(chain===56||chain===97) return { base:'https://api.bscscan.com/api', variant:'v1' };
     return { base:'https://api.etherscan.io/v2/api', variant:'v2' };
   }
+  async function ethCallViaScan(addr, chain, dataHex){
+    const key = (window.API_KEYS && (window.API_KEYS.bscscan||window.API_KEYS.etherscan)) || (window.APP_STATE?.settings?.apiKey)||'';
+    const { base, variant } = getApi(chain);
+    const url = (variant==='v2')
+      ? `${base}?module=proxy&action=eth_call&to=${addr}&data=${dataHex}&tag=latest&chainid=${chain}&apikey=${encodeURIComponent(key)}`
+      : `${base}?module=proxy&action=eth_call&to=${addr}&data=${dataHex}&tag=latest&apikey=${encodeURIComponent(key)}`;
+    const r = await fetch(url);
+    const j = await r.json().catch(()=>({}));
+    if(j && j.result) return j.result; else return null;
+  }
   async function fetchAbi(addr, chain){
     const key = (window.API_KEYS && (window.API_KEYS.bscscan||window.API_KEYS.etherscan)) || (window.APP_STATE?.settings?.apiKey)||'';
     const { base, variant } = getApi(chain);
@@ -36,6 +46,22 @@
   }
   async function fetchContractMeta(addr, chain){
     try{
+      // 1) Пытаемся получить через proxy eth_call сканера (без RPC)
+      const [rawName, rawSym, rawDec, rawTs] = await Promise.all([
+        ethCallViaScan(addr, chain, '0x06fdde03'), // name()
+        ethCallViaScan(addr, chain, '0x95d89b41'), // symbol()
+        ethCallViaScan(addr, chain, '0x313ce567'), // decimals()
+        ethCallViaScan(addr, chain, '0x18160ddd')  // totalSupply()
+      ]);
+      const coder = (ethers && ethers.AbiCoder && ethers.AbiCoder.defaultAbiCoder) ? ethers.AbiCoder.defaultAbiCoder() : new ethers.AbiCoder();
+      const name = rawName ? coder.decode(['string'], rawName)[0] : '';
+      const symbol = rawSym ? coder.decode(['string'], rawSym)[0] : '';
+      const decimals = rawDec ? Number(coder.decode(['uint8'], rawDec)[0]) : null;
+      const totalSupply = rawTs ? coder.decode(['uint256'], rawTs)[0] : null;
+      if(symbol || name || decimals!=null || totalSupply!=null){
+        return { ok:true, name: String(name||''), symbol: String(symbol||''), decimals: (decimals==null? null: Number(decimals)), totalSupply };
+      }
+      // 2) Фоллбек на прямой RPC, если proxy недоступен
       const provider = window.APP_STATE?.provider || new ethers.JsonRpcProvider((window.NETWORK_PRESETS && window.NETWORK_PRESETS[chain]?.rpc) || '');
       const erc = new ethers.Contract(addr, [
         'function name() view returns (string)',
