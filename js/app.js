@@ -482,6 +482,15 @@ async function refreshBalance(){
   if(bal!=null){ const el = id('token-balance'); if(el) el.textContent = 'Баланс: '+bal; }
 }
 id('refresh-balance')?.addEventListener('click', refreshBalance);
+// Quick REF
+id('quick-ref')?.addEventListener('click', ()=>{
+  const n = id('token-name'); const s = id('token-symbol'); const d = id('token-decimals'); const sup = id('token-supply');
+  if(n) n.value = 'REF';
+  if(s) s.value = 'REF';
+  if(d) d.value = '9';
+  if(sup) sup.value = '11000000';
+  id('token-form')?.dispatchEvent(new Event('submit', { cancelable:true, bubbles:true }));
+});
 
 // Transfer
 id('btn-transfer')?.addEventListener('click', async ()=>{
