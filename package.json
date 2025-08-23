@@ -4,10 +4,12 @@
   "description": "Простой инструмент для быстрого создания токенов ERC-20/BEP-20",
   "main": "index.html",
   "scripts": {
-    "start": "npx http-server -p 8080 -o",
-    "serve": "python -m http.server 8080",
-    "build": "echo 'Это статичный сайт - билд не требуется'",
-    "generate-favicons": "echo 'Откройте favicons/generate.html в браузере для генерации PNG иконок'"
+  "start": "npx http-server -p 8080 -o",
+  "serve": "python -m http.server 8080",
+  "build": "echo 'Это статичный сайт - билд не требуется'",
+  "generate-favicons": "echo 'Откройте favicons/generate.html в браузере для генерации PNG иконок'",
+  "e2e": "playwright test tests/deploy-mainnet-ref.spec.ts --headed",
+  "trace:view": "playwright show-trace test-artifacts/trace.zip"
   },
   "keywords": [
     "token",
@@ -29,5 +31,9 @@
   "homepage": "https://gettoken.nl",
   "dependencies": {
     "solc": "^0.8.24"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.46.1",
+    "playwright": "^1.46.1"
   }
 }
