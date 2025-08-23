@@ -10,7 +10,8 @@ async function verifyContract(){
 	const cancelBtn = document.getElementById('verify-cancel-btn'); if(cancelBtn) cancelBtn.disabled=false;
 	try {
 		const { params } = APP_STATE.token;
-		const contractName = (params?.symbol)||'Token';
+		// Имя контракта извлекаем из исходника, чтобы совпадало с тем, что будет компилироваться на стороне сканера
+		const contractName = extractContractName(params?.source) || 'ConfigERC20';
 		const chainid = APP_STATE.network;
 		const source = params.source; // сохранённый полный исходник
 		if(!source){ throw new Error('Нет исходника для верификации'); }
@@ -28,7 +29,7 @@ async function verifyContract(){
 		form.set('optimizationUsed','1');
 		form.set('runs','200');
 		form.set('licenseType','3');
-		form.set('constructorArguments', encodeConstructorArgs(params));
+		form.set('constructorArguments', encodeConstructorArgs(APP_STATE.token.abi, params));
 		const apiBase = (Number(chainid)===56||Number(chainid)===97) ? 'https://api.bscscan.com/v2/api' : 'https://api.etherscan.io/v2/api';
 		const resp = await fetch(apiBase, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:form.toString() });
 		const data = await resp.json();
@@ -47,11 +48,34 @@ async function verifyContract(){
 	const cancelBtn2 = document.getElementById('verify-cancel-btn'); if(cancelBtn2) cancelBtn2.disabled=true;
 }
 
-function encodeConstructorArgs(p){
-	if(!p || !p.supply) return '';
-	// Конструктор (string,string,uint8,uint256) — кодируем только последний uint256
-	const hex = BigInt(p.supply).toString(16);
-	return hex.padStart(64,'0');
+function encodeConstructorArgs(abi, p){
+	try{
+		const ctor = (abi||[]).find(x=> x.type==='constructor') || { inputs:[] };
+		const inputs = ctor.inputs||[];
+		if(!inputs.length) return '';
+		const types = inputs.map(i=> i.type);
+		const values = inputs.map(i=>{
+			if(i.type==='string'){
+				// Первые два string: name, symbol
+				// Берём по очереди
+				if(!this.___strIndex) this.___strIndex = 0;
+				const v = (this.___strIndex++ === 0) ? (p?.name||'Token') : (p?.symbol||'TKN');
+				return v;
+			}
+			if(i.type==='uint8') return Number(p?.decimals||18);
+			if(i.type==='uint256') return BigInt(p?.supply||0n);
+			throw new Error('Unsupported ctor type: '+i.type);
+		});
+		const coder = (ethers && ethers.AbiCoder && ethers.AbiCoder.defaultAbiCoder) ? ethers.AbiCoder.defaultAbiCoder() : new ethers.AbiCoder();
+		const encoded = coder.encode(types, values); // 0x...
+		return encoded.startsWith('0x') ? encoded.slice(2) : encoded;
+	}catch(_){ return ''; }
+}
+
+function extractContractName(source){
+	if(!source) return '';
+	const m = source.match(/contract\s+([A-Za-z0-9_]+)/);
+	return m ? m[1] : '';
 }
 
 async function pollVerify(apiBase, guid, chainid, maxAttempts){
